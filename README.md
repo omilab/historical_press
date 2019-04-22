@@ -12,7 +12,7 @@ In the first phase we use machine learning based tools through the platform Tran
 The project will not only enable thorough digital research of the fascinating corpus of HaZefirah but will serve as a proof-of-concept study for any future endeavour to salvage 315 other titles, entailing over two million pages, in the Jewish Historical Press collection of JPRESS. The workflow can also be adopted by hundreds of digital collections which are in similar condition. Finally, the discussion will draw lessons regarding the challenges for work along developing methods, tools and platforms.
 
 
-## OCR Pipeline Steps
+## Legacy to PAGE Pipeline
 The folder "OCR_Pipeline" contains a Jupyter notebook: Pipeline.ipynb.
 The notebook describes the pipeline steps and includes usage examples. To use the examples, import 2 python files that are also  included: TkbsApiClient.py and TkbsPublication.py.
 The sample_data subfolder includes data that can be used when running the notebook.
