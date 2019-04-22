@@ -1,4 +1,6 @@
 # Historical newspaper archive research at OMILab
+https://www.openu.ac.il/en/omilab
+
 OmiLab’s project on Historical Newspaper Archive Research is run in collaboration with the National Library of Israel, that provided access to selected image and OCR output files at the back end of JPRESS - the Historical Jewish Press collection of the Tel Aviv University and the National Library of Israel. As a pilot study we chose HaZefirah, which started 1962 in Warsaw as a weekly publication, and in 1886 became the first daily newspaper in the Hebrew language. Over decades of its publication it changed editorship, places of publication, formats, genres and ideologies and therefore makes for a fascinating case for ‘distant reading’ approaches. 
 
 Worldwide, large historical newspapers digitization project provide oceans of valuable historical periodical data. Much of this data, however, is available in platforms that provide mediocre OCR, which hinders  the application of text analytical methods of distant reading, NLP, NER and various methods of semantic processing. 
