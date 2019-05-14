@@ -3,8 +3,8 @@
 OMILAB 2019 - Run a sequence of data conversions and Transkribus-API transactions to ocr and convert a Legacy NLI document to TEI.xml
 """
 
-from TkbsDocument_20 import Document
-from TkbsApiClient_ import TranskribusClient
+from TkbsDocument import Document
+from TkbsApiClient import TranskribusClient
 from xml.etree import ElementTree
 import xml.etree.cElementTree as ET
 import json, os, sys, time
@@ -164,8 +164,8 @@ def run_ocr(collection, HTRmodelid, dictionaryName, mydocid, pids, mytkbs):
 
 v = True
 
-infolder = r'C:\Users\Nurit\Desktop\OMILAB\testing\pipeline\_test_\in_0105'
-outfolder = r'C:\Users\Nurit\Desktop\OMILAB\testing\pipeline\_test_\out'
+infolder = r'C:\_test_\in_0105' #CHANGE THIS
+outfolder = r'C:\_test_\out' #CHANGE THIS
 
 v and print("---   CREATING DATA to upload  ---")
 p = Document()
@@ -177,14 +177,14 @@ prep_dir(exportdir)
 p.export_tkbs_format(exportdir)
 
 v and print("---   CONNECTING to server    ---")
-user = "<user.name@email.com>"
-key = "<password>"
-collec = "17989"
+user = "<user.name@email.com>" #CHANGE THIS
+key = "<password>" #CHANGE THIS
+collec = "17989" #CHANGE THIS
 tkbs = TranskribusClient(sServerUrl = "https://transkribus.eu/TrpServer")
 tkbs.auth_login(user, key, True)
 #HTRmodelname = 'Test'
-HTRmodelid = "10168" #"4797" #"41"
-#dictName =  "Hebrew_Test.dict"
+HTRmodelid = "10168" #CHANGE THIS
+#dictName =  "Hebrew_Test.dict" #CHANGE THIS
 #print("session id: " + tkbs.getSessionId() + "\n=================")
 
 
