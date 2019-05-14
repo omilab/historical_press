@@ -1,5 +1,5 @@
 ## Legacy to PAGE Pipeline
-The folder "OCR_Pipeline" contains a Jupyter notebook: Pipeline.ipynb. The notebook describes the pipeline steps and includes usage samples. The notebook includes a series of code snippets, and their expected output below.
-To use the samples, import the two python files that are also included: TkbsApiClient.py and TkbsPublication.py. The sample_data subfolder includes data that can be used when running the notebook.
+The folder "OCR_Pipeline" contains a "Runner" script (PipelineRunner.py) and a test Jupyter notebook: Pipeline.ipynb. The notebook describes the pipeline steps and includes usage samples. It includes a series of code snippets, and their expected output below.
+To use therunner script or the notebook samples, import the two python files that are also included: TkbsApiClient.py and TkbsDocument.py. The sample_data subfolder includes data that can be used when running the notebook and the runner script.
 
-The code was tested in Transkribus test environment.
+The code was tested in Transkribus production environment.
