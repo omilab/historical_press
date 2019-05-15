@@ -251,7 +251,7 @@ tkbs.auth_logout()
 
 
 v and print("---   TEI export           ---")
-tkbsfolder =  r'C:\Users\Nurit\Desktop\OMILAB\testing\pipeline\_test_\out\ocrdowndir\021-HZF-1876-01-05-001-20385_17989_157575' #otarget_dir
+tkbsfolder =  otarget_dir
 p.load_tkbs_data(tkbsfolder)
 p.load_legacy_articles(p.legacy_metafile)
 p.match_legacy_articles()
