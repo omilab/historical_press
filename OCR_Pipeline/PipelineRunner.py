@@ -169,6 +169,7 @@ outfolder = r'C:\_test_\out' #CHANGE THIS
 
 v and print("---   CREATING DATA to upload  ---")
 p = Document()
+#p.set_factors(150, 1.7238, 0.67)
 p.load_legacy_data(infolder)
 
 
