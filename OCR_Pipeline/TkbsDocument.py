@@ -37,15 +37,12 @@ class Document:
         self.inputdir_images = 'Img'
         self.outputdir_xmls = 'page'
         self.legacy_garbage_width = 13
-        self.resolution_filename_part = "_150"
-        self.factor1 = 1.7238
-        self.factor2 = 0.67
-        self.resolution_144 = "_144"
-        self.factor1_144 = 1.7237
-        self.factor2_144 = 0.494
-        self.resolution_160 = "_160"
-        self.factor1_160 = 2
-        self.factor2_160 = 0.494
+        self.resolution_filename_part = None
+        self.factor1 = None
+        self.factor2 = None
+        self.resolutions = {150: {'factor1': 1.7238, 'factor2': 0.67}, \
+                            144: {'factor1': 1.7237, 'factor2': 0.494}, \
+                            160: {'factor1': 2, 'factor2': 0.494}}
         self.page_count = 0
         self.entity_counter = 0
         self.pxmlOutname = {}
@@ -70,8 +67,8 @@ class Document:
         self.pages = {}
         self.articles = {}
         self.legacy_articles = {}
-
-
+        self.HeaderPrimitives = [] #key: entity id, value: bool true if entity has HeadLine_hl1 primitive
+    
     #remove garbage lines by identifying lines with very small width    
     def is_garbage_line(self, linebox):
         try:
@@ -159,37 +156,43 @@ class Document:
             print ("END ERROR \n\n")
             exit
 
+    #calculate factor1 based on _144 and _160 resolutions
+    def calc_factor1(self, resolution):
+        return 0.494
+    
+    #calculate factor2 based on _144 and _160 resolutions
+    def calc_factor2(self, resolution):
+        return (0.01726875*int(resolution) - 0.763)
+
     #scan was done with 3 different resolutions, identify and change factors accordingly
     def pick_resolution(self, legacy_meta_file):
         try:
-            tree = etree.parse(legacy_meta_file)
-            resolution = 0
-            for resElement in tree.xpath('//Resolution'):
-                resText = resElement.text
-                if int(resText) > resolution:
-                    resolution = int(resText)
-            if "_" + str(resolution) == self.resolution_144:
-                self.resolution_filename_part = self.resolution_144
-                self.factor1 = self.factor1_144
-                self.factor2 = self.factor2_144
-                #print("resolution converted to " + str(resolution))
-            if "_" + str(resolution) == self.resolution_160:
-                self.resolution_filename_part = self.resolution_160
-                self.factor1 = self.factor1_160
-                self.factor2 = self.factor2_160
-                #print("resolution converted to " + str(resolution))                
-            elif "_" + str(resolution) == self.resolution_filename_part:
-                #print("resolution kept " + str(resolution))
-                return
-            else:
-                raise ValueError('Undefined resolution: ' + str(resolution))
+            if self.resolution_filename_part == None:
+                tree = etree.parse(legacy_meta_file)
+                resolution = 0
+                for resElement in tree.xpath('//Resolution'):
+                    resText = resElement.text
+                    if int(resText) > resolution:
+                        resolution = int(resText)
+                self.resolution_filename_part = "_" + str(resolution)        
+                if resolution in self.resolutions.keys():
+                    self.factor1 = self.resolutions[resolution]['factor1']
+                    self.factor2 = self.resolutions[resolution]['factor2']
+                else:
+                    self.factor1 = self.calc_factor1(resolution)
+                    self.factor2 = self.calc_factor2(resolution)
+                    print('WARNING in pick_resolution: undefined resolution - ' + str(resolution) + ', using factor1=' + str(self.factor1) + ', factor2=' + str(self.factor2) + '. Check coordinates precision and use set_factors to override calculated factors if needed.')
         except Exception as e: 
             print("ERROR in pick_resolution " + legacy_meta_file)
             print (e)
             print ("END ERROR \n\n")
             sys.exit(1)
 
-
+    def set_factors(self, resolution, factor1, factor2):
+        self.resolution_filename_part = "_" + str(resolution)
+        self.factor1 = factor1
+        self.factor2 = factor2
+        
     #check if dir exists, creates it if not
     def prep_dir(self, out_dir):
         try:
@@ -273,7 +276,7 @@ class Document:
             MetaElement = tree.xpath('//XMD-PAGE/Meta')
             self.PagesImgHeight[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_HEIGHT"), self.factor1)
             self.PagesImgWidth[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_WIDTH"), self.factor1)
-            HeaderPrimitives = [] #key: entity id, value: bool true if entity has HeadLine_hl1 primitive
+            self.HeaderPrimitives 
             for node in tree.xpath('//Primitive'): #all primitives needed
                 content_id = node.get("ID")
                 self.ContentPrimitives.append(content_id)
@@ -285,8 +288,8 @@ class Document:
                     self.PrimitiveTypes[content_id] = prim_type
                     self.RegionBoxing[content_id] = self.calc_Pg_coordinates(content_box, self.factor1)
                     if (prim_type == self.headline_primitive_type):
-                        HeaderPrimitives.append(content_id)
-            for header in HeaderPrimitives:
+                        self.HeaderPrimitives.append(content_id)
+            for header in self.HeaderPrimitives:
                 if (self.PrimitivesIndexInPage[header] != "0"):
                     primitive_entity = header[:-2] #remove 2 last chars
                     self.PrimitivesIndexInPage[header] = "0"
@@ -528,8 +531,8 @@ class Document:
                     zones[lid] = ET.SubElement(zones[rid], 
                         "zone", 
                         attrib = {"xml:id": lid, 
-                               "rendition": "Line"})#, 
-                               #"points": self.pages[p].regions[r].lines[l].coordinates}) #no coordinates
+                               "rendition": "Line", 
+                               "points": self.pages[p].regions[r].lines[l].coordinates.get("points")}) #line coordinates
         #-------- data -----------------------------------
         text = ET.SubElement(TEI, "text")
         body = ET.SubElement(text, "body")
