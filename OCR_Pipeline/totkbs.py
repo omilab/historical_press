@@ -6,12 +6,13 @@ from TkbsApiClient import TranskribusClient
 import xml.etree.ElementTree as ET
 from TkbsDocument import Document
 import json
-import os
-import xml.etree.cElementTree as ET
 import sys
 import pickle
 import requests.exceptions
 import time
+from lxml import etree
+import random
+
 
 def log(s_or_e, msg):
     label = ["STARTING: ", "DONE WITH: "]
@@ -28,6 +29,75 @@ def log(s_or_e, msg):
 # 7. Run HTR for the document on Transkribus server.
 # 8. Download the document.
 # 9. Convert and combine the document data into TEI format.
+
+# in ar file get XMD-entity with id of ar and get box val
+# in pg file get Entity with id of ar and get box val
+# split return
+def get_coords(filename, article, ispagefile):
+    tree = etree.parse(filename)
+    if not ispagefile:
+        elem = tree.xpath('//XMD-entity')
+        if elem[0].get("ID") != article:
+            print "Getting coordinates: seems to be wrong article file"
+        return elem[0].get("BOX").split()
+    if ispagefile:
+        for entity in tree.xpath('//Entity'):
+            if entity.get("ID") == article:
+                resolution = 0
+                for res in tree.xpath('//Resolution'):
+                    res_text = res.text
+                    if int(res_text) > resolution:
+                        resolution = int(res_text)
+                return (resolution, entity.get("BOX").split())
+
+def get_files(issue):
+    pdir = "Document"
+    path = os.path.join(issue, pdir)
+    dirlist = os.listdir(path)
+    pagepath = dirlist[random.randint(0,len(dirlist)-1)]
+    while not os.path.isdir(os.path.join(path,pagepath)):
+        pagepath = dirlist[random.randint(0,len(dirlist)-1)]
+    path = os.path.join(path,pagepath)
+    # choose a Ar and Pg file
+    article_f = None
+    page_f = None
+    for f in os.listdir(path):
+        if (f.lower().startswith("ar") or f.lower().startswith("ad")) and f[len(f)-4:] == ".xml" and article_f is None:
+            article_f = f
+        elif f.lower().startswith("pg") and f[len(f)-4:] == ".xml" and page_f is None:
+            page_f = f
+        if article_f and page_f:
+            break
+    article = article_f[:len(article_f)-4]
+    return [article, os.path.join(path, article_f), os.path.join(path, page_f)]
+
+def avg_coords(newcoords, oldcoords):
+    sum = 0.0
+    for n, o in zip(newcoords, oldcoords):
+        if float(o) != 0:
+            sum += (float(n)/float(o))
+    sum = sum/4.0
+    return sum
+
+def calc_factor(issue):
+    factor = 0.0
+    def_factor2 = 4.0
+    sample_cnt = 10
+    for x in range(0,sample_cnt):
+        # choose a page directory
+        files = get_files(issue)
+        article = files[0]
+        article_f = files[1]
+        page_f = files[2]
+        # get coordinates
+        new_coord = get_coords(article_f, article, False)
+        og_coord = get_coords(page_f, article, True)
+        resolution = og_coord[0]
+        og_coord = og_coord[1]
+        # get average difference
+        avg = avg_coords(new_coord, og_coord)
+        factor += avg
+    return [int(resolution), factor/float(sample_cnt), def_factor2]
 
 # getting list of pxml filenames and their imagefile names
 def pxml_list(main_dir):
@@ -48,11 +118,15 @@ def pxml_list(main_dir):
     return (pagelist, pxml_dic)
 
 # Convert Abbyy Olive document layout into PageXML format
-def make_pxml(res=None, f1=None, f2=None):
+def make_pxml(res=None, f1=None, f2=None, factors=None):
     log(0,"pxml")
     p = Document()
-    for f in factors:
-        p.set_factors(f[0], f[1], f[2])
+    if type(config['factors']) == list:
+        for f in config['factors']:
+            p.set_factors(f[0], f[1], f[2])
+    elif factors is not None:
+        for f in factors:
+            p.set_factors(f[0], f[1], f[2])
     if res is not None:
         p.set_factors(res,f1,f2)
     # directory containing TOC.xml
@@ -263,9 +337,8 @@ def set_config():
     # custom factors
     while True:
         try:
-            custom_factors = input("Enter a list of custom factors in the following format [[resolution, factor1, factor2], ...]\nOr enter 'None' for default values: ")
-            if custom_factors is not None:
-                config['factors'] = custom_factors
+            custom_factors = input("Enter a list of custom factors in the following format [[resolution, factor1, factor2], ...]\nOr enter 'True' to have them calculated for each document, or 'False' to use defaults: ")
+            config['factors'] = custom_factors
         except Exception:
             print error
             continue
@@ -405,18 +478,21 @@ elif config['depth'] == 1:
 for issue in data_dirs:
     log(0,issue)
     paper = issue
-    config['upload_desc'] = config['upload_desc'] + ": " + issue
-    config['upload_title'] = config['upload_title'] + ": " + issue
-
     # magid 144 factors = [[2.00803520956,.5]]
     # la epoca 180 factors = [[1.66539490841,.6]]
     # todo: custom rules per paper
-    if issue.lower().find("magid") > -1:
-        make_pxml(res=144,f1=2.00803520956,f2=.5)
-    elif issue.lower().find("epoca") > -1:
-        make_pxml(res=180,f1=1.66539490841,f2=.6)
-    else:
+    if type(config['factors']) == list:
         make_pxml()
+    elif config['factors'] == True:
+        fkts = calc_factor(issue)
+        make_pxml(res=fkts[0], f1=fkts[1], f2=fkts[2])
+    else:
+        if issue.lower().find("magid") > -1:
+            make_pxml(res=144,f1=2.00803520956,f2=.5, factors=factors)
+        elif issue.lower().find("epoca") > -1:
+            make_pxml(res=180,f1=1.66539490841,f2=.6, factors=factors)
+        else:
+            make_pxml(factors=factors)
     uploadid = upload_pxml()
     if config['upload_only'] is False:
         page_list = get_pagelist(uploadid)
@@ -429,6 +505,3 @@ for issue in data_dirs:
         edit_baseline()
         ocr()
     log(1,issue)
-
-
-# In[ ]:
