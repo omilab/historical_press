@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+# To run totkbs, use python 2.7 and install dependencies with "pip install -r requirements.txt"
 
 import os
 from TkbsApiClient import TranskribusClient
@@ -83,6 +84,8 @@ def calc_factor(issue):
     factor = 0.0
     def_factor2 = 4.0
     sample_cnt = 10
+    if config['sample_cnt'] > 0:
+        sample_cnt = config['sample_cnt']
     for x in range(0,sample_cnt):
         # choose a page directory
         files = get_files(issue)
@@ -339,6 +342,14 @@ def set_config():
         try:
             custom_factors = input("Enter a list of custom factors in the following format [[resolution, factor1, factor2], ...]\nOr enter 'True' to have them calculated for each document, or 'False' to use defaults: ")
             config['factors'] = custom_factors
+            if config['factors'] == True:
+                while True:
+                    try:
+                        config['sample_cnt'] = int(raw_input("Enter number of textblocks from which to compute the factors: "))
+                    except Exception:
+                        print error
+                        continue
+                    break
         except Exception:
             print error
             continue
