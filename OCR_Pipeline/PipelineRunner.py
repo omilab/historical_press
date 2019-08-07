@@ -7,29 +7,34 @@ from TkbsDocument import Document
 from TkbsApiClient import TranskribusClient
 from xml.etree import ElementTree
 import xml.etree.cElementTree as ET
-import json, os, sys, time
+import json, os, sys, time, datetime, glob
 
 #check if dir exists, creates it if not
 def prep_dir(out_dir):
     try:
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
+        return(out_dir)
     except Exception as e: 
         print("ERROR in prep_dir " + out_dir)
         print (e)
         print ("END ERROR \n\n")
-        sys.exit(1)
+        raise e
 
-def wait_for_jobstatus(job, waitseconds, mytkbs):
+def wait_for_jobstatus(job, waitseconds, mytkbs, count=1):
     try:
         #print("waiting " + str(waitseconds) + ", checking jobid " + str(job))
-        if waitseconds > 0:
-            time.sleep(waitseconds)
-        response = mytkbs.getJobStatus(str(job))
-        if response['state'] == 'FINISHED':
-            return response['success']
-        else:
-            return False
+        c = 0
+        while c < count:
+            c += 1
+            if waitseconds > 0:
+                time.sleep(waitseconds)
+            response = mytkbs.getJobStatus(str(job))
+            if response['state'] == 'FINISHED':
+                return response['success']
+            else:
+                if c == count:
+                    return False
     except Exception as e:
                 print("ERROR in wait_for_jobstatus ")
                 print (e)
@@ -113,7 +118,7 @@ def line_detect(collection, mydocid, pageids, mytkbs):
         status = tree.find('trpJobStatus')
         jobId = status.find('jobId').text
         seconds = total * 60
-        return wait_for_jobstatus(jobId, seconds, mytkbs)
+        return wait_for_jobstatus(jobId, seconds, mytkbs, count=5)
     except Exception as e:
                 print("ERROR in line_detect ")
                 print (e)
@@ -154,7 +159,7 @@ def run_ocr(collection, HTRmodelid, dictionaryName, mydocid, pids, mytkbs):
         jstring = jstring + ']}}'
         jobid = mytkbs.htrRnnDecode(collection, HTRmodelid, dictionaryName, mydocid, jstring, bDictTemp=False)
         seconds = 80 * len(pids)
-        return wait_for_jobstatus(jobid, seconds, mytkbs)
+        return wait_for_jobstatus(jobid, seconds, mytkbs, count=5)
     except Exception as e:
                 print("ERROR in run_ocr for docid " + str(mydocid))
                 print (e)
@@ -162,20 +167,7 @@ def run_ocr(collection, HTRmodelid, dictionaryName, mydocid, pids, mytkbs):
                 pass
 
 
-v = True
-
-infolder = r'C:\_test_\in_0105' #CHANGE THIS
-outfolder = r'C:\_test_\out' #CHANGE THIS
-
-v and print("---   CREATING DATA to upload  ---")
-p = Document()
-#p.set_factors(150, 1.7238, 0.67)
-p.load_legacy_data(infolder)
-
-
-exportdir = os.path.join(outfolder, "pagexml_for_upload")
-prep_dir(exportdir)
-p.export_tkbs_format(exportdir)
+v = False
 
 v and print("---   CONNECTING to server    ---")
 user = "<user.name@email.com>" #CHANGE THIS
@@ -189,83 +181,125 @@ HTRmodelid = "10168" #CHANGE THIS
 #print("session id: " + tkbs.getSessionId() + "\n=================")
 
 
-v and print("---   UPLOADING data to server       ---")
-docid = upload(collec, exportdir, p.img_names_by_pgnum(), p.pxml_names_by_pgnum(), p.title, user, "pipeline test", tkbs)
-if docid <= 0:
-    print ("ERROR - document failed to upload " + p.title)
-    sys.exit(1)
+outfolder = r'<WORK FOLDER>\output' #CHANGE THIS
+workfolder = prep_dir(os.path.join(outfolder, 'work'))
+exportfolder = prep_dir(os.path.join(outfolder, 'export'))
 
-v and print("---   DOWNLOADING-1 doc for page ids       ---")
-tempdowndir = os.path.join(outfolder, "tempdowndir")
-prep_dir(tempdowndir)
-target_dir = os.path.join(tempdowndir, p.title + "_" + str(collec) + "_" + str(docid))
-docjson = download(collec, str(docid), target_dir, tkbs, p.tkbs_meta_filename)
-pageids = p.load_tkbs_page_ids(docjson)
+subfolders = [x[0] for x in os.walk(r'<WORK FOLDER>\input')] #CHANGE THIS
 
-v and print("---   LINE DETECTION          ---")
-detection_status = line_detect(collec, docid, pageids, tkbs)
-if not detection_status:
-    print ("ERROR - document failed line detection " + p.title)
-    sys.exit(1)
+for sfolder in subfolders:
+    try:
+        if not os.path.isfile(os.path.join(sfolder, 'TOC.xml')):
+            continue
+        infolder = sfolder 
+        start = str(datetime.datetime.now().strftime("%y-%m-%d-%H-%M"))
+        print(start + " - " + infolder)# + "\n==============")
 
-v and print("---   DOWNLOADING-2 doc for baseline extention      ---")
-extentiondowndir = os.path.join(outfolder, "extentiondowndir")
-prep_dir(extentiondowndir)
-xtarget_dir = os.path.join(extentiondowndir, p.title + "_" + str(collec) + "_" + str(docid))
-xdocjson = download(collec, str(docid), xtarget_dir, tkbs, p.tkbs_meta_filename)
-xpageids = p.load_tkbs_page_ids(xdocjson)
+        v and print("---   CREATING DATA to upload  ---")
+        p = Document()
+        #p.set_factors(150, 1.7238, 0.67)
+        p.load_legacy_data(infolder)
+        
+        teifolder = os.path.join(exportfolder, 'tei')
+        teifiles = glob.glob(teifolder + r'\*' + p.doc_title + r'*_tei.xml')
+        if len(teifiles) > 0:
+            v and print("TEI found, Skipping document " + p.doc_title)
+            continue
+        
+        uniquename = p.doc_title + "_" + start
+        firstuploadtopdir = prep_dir(os.path.join(workfolder, r'pagexml_for_upload'))
+        firstexportdir = prep_dir(os.path.join(firstuploadtopdir, uniquename))
+        p.export_tkbs_format(firstexportdir)
+        
+        
+        
+        v and print("---   UPLOADING data to server       ---")
+        docid = upload(collec, firstexportdir, p.img_names_by_pgnum(), p.pxml_names_by_pgnum(), p.title, user, "pipeline test", tkbs)
+        if docid <= 0:
+            print ("ERROR - document failed to upload " + p.title)
+            continue 
+        
+        v and print("---   DOWNLOADING-1 doc for page ids       ---")
+        tempdowndir = prep_dir(os.path.join(workfolder, "tempdowndir"))
+        target_dir = os.path.join(tempdowndir, p.title + "_" + str(collec) + "_" + str(docid))
+        docjson = download(collec, str(docid), target_dir, tkbs, p.tkbs_meta_filename)
+        pageids = p.load_tkbs_page_ids(docjson)
+        
+        v and print("---   LINE DETECTION          ---")
+        detection_status = line_detect(collec, docid, pageids, tkbs)
+        if not detection_status:
+            print ("ERROR - document failed line detection " + p.title)
+            continue 
+        
+        v and print("---   DOWNLOADING-2 doc for baseline extention      ---")
+        extentiondowndir = os.path.join(workfolder, "extentiondowndir")
+        prep_dir(extentiondowndir)
+        xtarget_dir = os.path.join(extentiondowndir, p.title + "_" + str(collec) + "_" + str(docid))
+        xdocjson = download(collec, str(docid), xtarget_dir, tkbs, p.tkbs_meta_filename)
+        xpageids = p.load_tkbs_page_ids(xdocjson)
+        
+        v and print("---   BASELINE EXTENTION         ---")
+        for num, fname in p.pxml_names_by_pgnum().items():
+            fullname = os.path.join(xtarget_dir, fname)
+            edit_pg_baseline(fullname, 10)
+        
+        v and print("---   UPLOAD extended baseline data to server          ---")
+        xdocid = upload(collec, xtarget_dir, p.img_names_by_pgnum(), p.pxml_names_by_pgnum(), p.title, user, "pipeline test baseline extended", tkbs)
+        if xdocid <= 0:
+            print ("ERROR - document failed to upload after baseline extention" + p.title)
+            continue #sys.exit(1)
+        
+        v and print("---   DOWNLOADING-3 doc for ocr page ids      ---")
+        preocr = os.path.join(workfolder, "preocr")
+        prep_dir(preocr)
+        preocr_dir = os.path.join(preocr, p.title + "_" + str(collec) + "_" + str(xdocid))
+        pdocjson = download(collec, str(xdocid), preocr_dir, tkbs, p.tkbs_meta_filename)
+        ppageids = p.load_tkbs_page_ids(pdocjson)
+        
+        
+        v and print("---   RUNNING OCR          ---")
+        ocr_status = run_ocr(collec, HTRmodelid, "", str(xdocid), ppageids, tkbs)
+        if not ocr_status:
+            print ("ERROR - document failed ocr " + p.title)
+            continue #sys.exit(1)
+        
+        v and print("---   FINAL DOWNLOAD after OCR for TEI export        ---")
+        ocrdowndir = os.path.join(exportfolder, "transkribus")
+        prep_dir(ocrdowndir)
+        otarget_dir = os.path.join(ocrdowndir, p.title + "_" + str(collec) + "_" + str(xdocid))
+        ocrdocjson = download(collec, str(xdocid), otarget_dir, tkbs, p.tkbs_meta_filename)
+        pageids = p.load_tkbs_page_ids(ocrdocjson)
+        
+        
 
-v and print("---   BASELINE EXTENTION         ---")
-for num, fname in p.pxml_names_by_pgnum().items():
-    fullname = os.path.join(xtarget_dir, fname)
-    edit_pg_baseline(fullname, 10)
-
-v and print("---   UPLOAD extended baseline data to server          ---")
-xdocid = upload(collec, xtarget_dir, p.img_names_by_pgnum(), p.pxml_names_by_pgnum(), p.title, user, "pipeline test baseline extended", tkbs)
-if xdocid <= 0:
-    print ("ERROR - document failed to upload after baseline extention" + p.title)
-    sys.exit(1)
-
-v and print("---   DOWNLOADING-3 doc for ocr page ids      ---")
-preocr = os.path.join(outfolder, "preocr")
-prep_dir(preocr)
-preocr_dir = os.path.join(preocr, p.title + "_" + str(collec) + "_" + str(xdocid))
-pdocjson = download(collec, str(xdocid), preocr_dir, tkbs, p.tkbs_meta_filename)
-ppageids = p.load_tkbs_page_ids(pdocjson)
+        
+        v and print("---   TEI export           ---")
+        tkbsfolder = otarget_dir 
+        p.load_tkbs_data(tkbsfolder)
+        p.load_legacy_articles(p.legacy_metafile)
+        p.match_legacy_articles()
+        p.export_tei(teifolder)
 
 
-v and print("---   RUNNING OCR          ---")
-ocr_status = run_ocr(collec, HTRmodelid, "", str(xdocid), ppageids, tkbs)
-if not ocr_status:
-    print ("ERROR - document failed ocr " + p.title)
-    sys.exit(1)
+        v and print("---   CSV export           ---")
+        csvfolder = os.path.join(exportfolder, 'csv')
+        p.export_csv(csvfolder)
 
-v and print("---   FINAL DOWNLOAD after OCR for TEI export        ---")
-ocrdowndir = os.path.join(outfolder, "ocrdowndir")
-prep_dir(ocrdowndir)
-otarget_dir = os.path.join(ocrdowndir, p.title + "_" + str(collec) + "_" + str(xdocid))
-ocrdocjson = download(collec, str(xdocid), otarget_dir, tkbs, p.tkbs_meta_filename)
-pageids = p.load_tkbs_page_ids(ocrdocjson)
+        
+        v and print("---   PLAINTEXT export     ---")
+        
+        plaintextfolder = os.path.join(exportfolder, 'plaintext')
+        prep_dir(teifolder)
+        p.export_plaintext(plaintextfolder)
+        
+
+        
+    except Exception as e:
+        print("ERROR in PipelineRunner main loop ")
+        print (e)
+        print ("END ERROR \n\n")
+        pass
+
 
 
 tkbs.auth_logout()
-
-
-v and print("---   TEI export           ---")
-tkbsfolder =  otarget_dir
-p.load_tkbs_data(tkbsfolder)
-p.load_legacy_articles(p.legacy_metafile)
-p.match_legacy_articles()
-teifolder = os.path.join(outfolder, 'tei')
-prep_dir(teifolder)
-p.export_tei(teifolder)
-
-v and print("---   PLAINTEXT export     ---")
-
-plaintextfolder = os.path.join(outfolder, 'plaintext')
-prep_dir(teifolder)
-p.export_plaintext(plaintextfolder)
-
-
-
-
