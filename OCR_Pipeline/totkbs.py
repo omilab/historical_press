@@ -285,7 +285,7 @@ def set_config():
     #depth
     while True:
         try:
-            config['depth'] = int(raw_input("Enter depth of the toc.xml from the base.\nIn the example above it is 3: "))
+            config['depth'] = int(raw_input("Enter depth of the toc.xml from the base.\nIn the example above it is 4: "))
         except Exception:
             print error
             continue
@@ -387,7 +387,7 @@ factors = [[144,2.4883843518,.4],
                [210,2.46938191718,.413],
                [180,3.59747421296,.2889],
                [150,2.48414234145,.4]]
-help = "python " + sys.argv[0] + " [flags] [config_filename] [overideable_configs]\n\nflags:\n\t-p\tprint configurations to text file\n\t-s\tsave configurations if updated\n\t-h\thelp\n\noveridable_configs:\n\tbase=[base_directory]\n\tdepth=[1-3]\n\tcollection=[collection_id]\n\tHTRmodelid=[model_id]\n\tupload_only=[boolean]"
+help = "python " + sys.argv[0] + " [flags] [config_filename] [overideable_configs]\n\nflags:\n\t-p\tprint configurations to text file\n\t-s\tsave configurations if updated\n\t-h\thelp\n\noveridable_configs:\n\tbase=[base_directory]\n\tdepth=[1-4]\n\tcollection=[collection_id]\n\tHTRmodelid=[model_id]\n\tupload_only=[boolean]"
 save_changes = False
 print_config = False
 config_f = None
@@ -477,11 +477,14 @@ if print_config:
             ctf.write(config_text)
 tkbs = tkbs_login()
 paper = ""
-if config['depth'] == 3:
+if config['depth'] == 4:
     data_dirs = [(os.path.join(config['base'], x, y, w) + "/" ) for x in os.listdir(config['base']) if not x.startswith(".") for y in os.listdir(os.path.join(config['base'], x)) if not y.startswith(".") for w in os.listdir(os.path.join(config['base'],x,y)) if not w.startswith(".")]
     [(count, data_dirs[count]) for count in range(len(data_dirs))]
-elif config['depth'] == 2:
+elif config['depth'] == 3:
     data_dirs = [(os.path.join(config['base'], x, y) + "/" ) for x in os.listdir(config['base']) if not x.startswith(".") for y in os.listdir(os.path.join(config['base'], x)) if not y.startswith(".")]
+    [(count, data_dirs[count]) for count in range(len(data_dirs))]
+elif config['depth'] == 2:
+    data_dirs = [(os.path.join(config['base'], x) + "/" ) for x in os.listdir(config['base']) if not x.startswith(".")]
     [(count, data_dirs[count]) for count in range(len(data_dirs))]
 elif config['depth'] == 1:
     data_dirs = [config['base']]
