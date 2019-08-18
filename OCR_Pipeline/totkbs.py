@@ -13,7 +13,7 @@ import requests.exceptions
 import time
 from lxml import etree
 import random
-
+import getpass
 
 def log(s_or_e, msg):
     label = ["STARTING: ", "DONE WITH: "]
@@ -300,7 +300,7 @@ def set_config():
     while True:
         try:
             config['user'] = raw_input("Enter Transkribus username: ")
-            config['key'] = raw_input("Enter Transkribus password: ")
+            config['key'] = getpass.getpass("Enter Transkribus password: ")
         except Exception:
             print error
             continue
