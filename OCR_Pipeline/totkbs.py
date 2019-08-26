@@ -291,9 +291,9 @@ def set_config():
             continue
         break
     #where pxml results are to be stored
-    config["pxml_dir"] = ".pxml_converted/"
+    config["pxml_dir"] = ".pxml_converted"
     #where the trankribus results are to be stored
-    config["tkribus_dir"] = ".transkribus/"
+    config["tkribus_dir"] = ".transkribus"
 
     #TRANSKRIBUS INFO
     #transkribus credentials
@@ -478,13 +478,13 @@ if print_config:
 tkbs = tkbs_login()
 paper = ""
 if config['depth'] == 4:
-    data_dirs = [(os.path.join(config['base'], x, y, w) + "/" ) for x in os.listdir(config['base']) if not x.startswith(".") for y in os.listdir(os.path.join(config['base'], x)) if not y.startswith(".") for w in os.listdir(os.path.join(config['base'],x,y)) if not w.startswith(".")]
+    data_dirs = [(os.path.join(config['base'], x, y, w)) for x in os.listdir(config['base']) if not x.startswith(".") for y in os.listdir(os.path.join(config['base'], x)) if not y.startswith(".") for w in os.listdir(os.path.join(config['base'],x,y)) if not w.startswith(".")]
     [(count, data_dirs[count]) for count in range(len(data_dirs))]
 elif config['depth'] == 3:
-    data_dirs = [(os.path.join(config['base'], x, y) + "/" ) for x in os.listdir(config['base']) if not x.startswith(".") for y in os.listdir(os.path.join(config['base'], x)) if not y.startswith(".")]
+    data_dirs = [(os.path.join(config['base'], x, y)) for x in os.listdir(config['base']) if not x.startswith(".") for y in os.listdir(os.path.join(config['base'], x)) if not y.startswith(".")]
     [(count, data_dirs[count]) for count in range(len(data_dirs))]
 elif config['depth'] == 2:
-    data_dirs = [(os.path.join(config['base'], x) + "/" ) for x in os.listdir(config['base']) if not x.startswith(".")]
+    data_dirs = [(os.path.join(config['base'], x)) for x in os.listdir(config['base']) if not x.startswith(".")]
     [(count, data_dirs[count]) for count in range(len(data_dirs))]
 elif config['depth'] == 1:
     data_dirs = [config['base']]
