@@ -106,7 +106,7 @@ def calc_factor(issue):
 def pxml_list(main_dir):
     pxml_dic = {}
     for x in sorted(os.listdir(os.path.join(main_dir,config['pxml_dir']))):
-        if x.endswith("png"):
+        if int(x[2:5]) not in pxml_dic:
             pxml_dic[int(x[2:5])] = [x]
             pxml_dic[int(x[2:5])].append(open(os.path.join(main_dir,config['pxml_dir'],x),'rb'))
         else:
