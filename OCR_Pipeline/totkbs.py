@@ -344,7 +344,7 @@ def set_config():
             custom_factors = raw_input("Enter a list of custom factors in the following format [[resolution, factor1, factor2], ...]\nOr enter '1' to have them calculated for each document, or '0' to use defaults: ")
             config['factors'] = custom_factors.strip()
             if config['factors'] == "1":
-                config['factors'] == True
+                config['factors'] = True
                 while True:
                     try:
                         config['sample_cnt'] = int(raw_input("Enter number of textblocks from which to compute the factors: "))
@@ -353,7 +353,7 @@ def set_config():
                         continue
                     break
             elif config['factors'] == "0":
-                config['factors'] == False
+                config['factors'] = False
             else:
                 config['factors'] == ast.literal_eval(config['factors'])
         except Exception:
