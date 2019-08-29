@@ -70,6 +70,9 @@ def get_files(issue):
             page_f = f
         if article_f and page_f:
             break
+    if not article_f and not page_f:
+        print "Required files in \"{}\" not found! Check if this directory belongs here. Trying again nonetheless.".format(path)
+        return get_files(issue)
     article = article_f[:len(article_f)-4]
     return [article, os.path.join(path, article_f), os.path.join(path, page_f)]
 
