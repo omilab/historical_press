@@ -156,14 +156,17 @@ class Document:
             exit
 
     #calculate factor1 based on _144 and _160 resolutions
+    """
     def calc_factor1(self, resolution):
         return 0.494
-
+    """
     #calculate factor2 based on _144 and _160 resolutions
+    """
     def calc_factor2(self, resolution):
         return (0.01726875*int(resolution) - 0.763)
-
+    """
     #scan was done with 3 different resolutions, identify and change factors accordingly
+    
     def pick_resolution(self, legacy_meta_file):
         try:
             if self.resolution_filename_part == None:
@@ -186,9 +189,9 @@ class Document:
             print (e)
             print ("END ERROR \n\n")
             sys.exit(1)
-
-    def set_factors(self, resolution, factor1, factor2):
-        self.resolutions[resolution] = {'factor1':factor1, 'factor2':factor2}
+    
+    #def set_factors(self, resolution, factor1, factor2):
+        #self.resolutions[resolution] = {'factor1':factor1, 'factor2':factor2}
     #check if dir exists, creates it if not
     def prep_dir(self, out_dir):
         try:
@@ -212,6 +215,7 @@ class Document:
 
     #use factors to get a number converted to Transkribus standard, return it as a truncated string
     def calc_one_coordinate(self, incoord, coeff1, coeff2):
+        #print("calc_one_coordinate! - WHY?")
         try:
             return str(int(round(int(incoord)*coeff1*coeff2, 0)))
         except Exception as e:
@@ -269,20 +273,31 @@ class Document:
     def parse_legacy_page_data(self, PgCount):
         try:
             tree = etree.parse(self.PagesXmlName[PgCount])
+            #print(PgCount, self.PagesXmlName[PgCount])
+            #print("This file directory only:")
+            dir_path = (os.path.dirname(self.PagesXmlName[PgCount])) # dir of page file
+            
             MetaElement = tree.xpath('//XMD-PAGE/Meta')
+            #print("parse_legacy_page_data: ", PgCount)
             self.PagesImgHeight[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_HEIGHT"), self.factor1)
             self.PagesImgWidth[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_WIDTH"), self.factor1)
             self.HeaderPrimitives
             for node in tree.xpath('//Primitive'): #all primitives needed
                 content_id = node.get("ID")
                 self.ContentPrimitives.append(content_id)
-                content_seq = node.get("SEQ_NO")
+                
+                content_seq = node.get("SEQ_NO") 
+                content_id = node.get("ID")
                 content_box = node.get("BOX")
+                #print(content_id, content_box)
+                legacy_box = (self.get_correct_box_coordinates(content_id, dir_path))
+                left, bottom, right, top = legacy_box.split()
+                coordinates = right + "," + top + " " + left + "," + top + " " + left + "," + bottom + " " + right + "," + bottom
                 prim_type = node.get("ELEMENT_TYPE")
                 if (prim_type != self.frame_primitive_type):
                     self.PrimitivesIndexInPage[content_id] = content_seq
                     self.PrimitiveTypes[content_id] = prim_type
-                    self.RegionBoxing[content_id] = self.calc_Pg_coordinates(content_box, self.factor1)
+                    self.RegionBoxing[content_id] = coordinates
                     if (prim_type == self.headline_primitive_type):
                         self.HeaderPrimitives.append(content_id)
             for header in self.HeaderPrimitives:
@@ -298,7 +313,19 @@ class Document:
             print (e)
             print ("END ERROR \n\n")
             pass
-
+    
+    #return the correct coordinate from ar00x file for every ar00?0? id
+    def get_correct_box_coordinates(self, ar_id, path): 
+        file_name = ar_id[:-2]
+        file_path = os.path.join(path, file_name)
+        tree = etree.parse(file_path + ".xml")
+        for node in tree.xpath('//Primitive'):
+            if (node.get("ID")) == ar_id:
+                return (node.get("BOX"))
+        for node in tree.xpath('//Img'):
+            if (node.get("ID")) == ar_id:
+                return (node.get("BOX"))
+        
     def pxml_names_by_pgnum(self):
         return self.pxmlOutname
 
