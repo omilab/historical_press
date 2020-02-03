@@ -1,10 +1,35 @@
-## Legacy to PAGE Pipeline
-The folder "OCR_Pipeline" contains a "Runner" script (PipelineRunner.py) and a test Jupyter notebook: Pipeline.ipynb. 
+# project title  (short and sweet name)
+## Introduction
+X is a pipeline that transform prxml via [Transkribus](https://transkribus.eu/Transkribus/) to research corpus.
+The pipeline get prxml files and text images as an input, convert them and upload to Transkribus. Then, the workflow in Transkribus done (lines segmentation, OCR etc.) and the resulting product is better OCR text for further analysis.
 
-The notebook describes the pipeline steps and includes usage samples. It includes a series of code snippets, and their expected output below.
+It is a tool that can massively handle legacy products of various OCR systems, such as Olive Software's system products and bring more accurate OCR using Transkribus. In detail, the challenge the tool deal with is enable improving the OCR without losing the valuable work that was done to analyze the layout and content structure of the newspapers; for this we created an open workflow which migrates legacy segmentation data into the open Page format, on which the improved text recognition technologies can run, and then outputs the data as a TEI-XML encoded and enriched corpus.
 
-To use the runner script or the notebook samples, import additional two python files that are also included: TkbsApiClient.py and TkbsDocument.py. 
+## Getting started
 
-The sample_data subfolder includes data that can be used when running the notebook and the runner script.
+### Prerequisites
+- Python 3 or Python 2.7
+- Username in Transkribus
+- OCR model in Transkribus
 
-The code was tested in Transkribus production environment.
+### Directoy structure
+
+## Tutorial
+
+## Roadmap
+
+## Authors
+This project intiated and created by [OMILab](https://www.openu.ac.il/en/omilab).
+
+OmiLab’s project on Historical Newspaper Archive Research is run in collaboration with the National Library of Israel, that provided access to selected image and OCR output files at the back end of JPRESS - the Historical Jewish Press collection of the Tel Aviv University and the National Library of Israel.
+
+
+## Contribute
+Please read CONTRIBUTING.md for details on our code of conduct, and the process for submitting pull requests to us.
+
+## License
+
+
+## Related projects
+- [Transkribus Project](https://github.com/Transkribus)
+- [Pocoto](https://github.com/cisocrgroup/PoCoTo)
