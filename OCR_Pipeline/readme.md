@@ -21,7 +21,7 @@ It is a tool that can massively handle legacy products of various OCR systems, s
 ## Authors
 This project intiated and created by [OMILab](https://www.openu.ac.il/en/omilab).
 
-OmiLab’s project on Historical Newspaper Archive Research is run in collaboration with the National Library of Israel, that provided access to selected image and OCR output files at the back end of JPRESS - the Historical Jewish Press collection of the Tel Aviv University and the National Library of Israel.
+[OmiLab’s project on Historical Newspaper Archive Research](https://www.openu.ac.il/en/omilab/pages/historicalnewspaper.aspx) is run in collaboration with the National Library of Israel, that provided access to selected image and OCR output files at the back end of JPRESS - the Historical Jewish Press collection of the Tel Aviv University and the National Library of Israel.
 
 
 ## Contribute
