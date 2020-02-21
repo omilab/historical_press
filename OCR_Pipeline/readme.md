@@ -1,6 +1,6 @@
-# project title  (short and sweet name)
+# HOP  (Historical OCR Pipeline)
 ## Introduction
-X is a pipeline that transform prxml via [Transkribus](https://transkribus.eu/Transkribus/) to research corpus.
+HOP is a pipeline that transform prxml via [Transkribus](https://transkribus.eu/Transkribus/) to research corpus.
 The pipeline get prxml files and text images as an input, convert them and upload to Transkribus. Then, the workflow in Transkribus done (lines segmentation, OCR etc.) and the resulting product is better OCR text for further analysis.
 
 It is a tool that can massively handle legacy products of various OCR systems, such as Olive Software's system products and bring more accurate OCR using Transkribus. In detail, the challenge the tool deal with is enable improving the OCR without losing the valuable work that was done to analyze the layout and content structure of the newspapers; for this we created an open workflow which migrates legacy segmentation data into the open Page format, on which the improved text recognition technologies can run, and then outputs the data as a TEI-XML encoded and enriched corpus.
@@ -12,7 +12,20 @@ It is a tool that can massively handle legacy products of various OCR systems, s
 - Username in Transkribus
 - OCR model in Transkribus
 
+##### Notes on using in Transkribus
+Currently, and probably until 2020's summer, the use in Tet
+
+
 ### Directoy structure
+For proper system operation, make sure the folder structure is as described below:
+* Newspaper folder that includes:
+  * TOC.xml file
+  * Documnet folder that includes:
+   * Folder for every newspaper page that includes:
+    * PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
+     * ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
+     * AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
+     * Img folder that includes images of all the objects in the page together and alone.
 
 ## Tutorial
 
