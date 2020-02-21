@@ -21,11 +21,11 @@ For proper system operation, make sure the folder structure is as described belo
 * Newspaper folder that includes:
   * TOC.xml file
   * Documnet folder that includes:
-   * Folder for every newspaper page that includes:
-    * PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
-     * ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
-     * AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
-     * Img folder that includes images of all the objects in the page together and alone.
+        * Folder for every newspaper page that includes:
+        * PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
+        * ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
+        * AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
+        * Img folder that includes images of all the objects in the page together and alone.
 
 ## Tutorial
 
