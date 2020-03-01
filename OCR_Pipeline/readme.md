@@ -13,7 +13,7 @@ It is a tool that can massively handle legacy products of various OCR systems, s
 - OCR model in Transkribus
 
 ##### Notes on using in Transkribus
-Currently, and probably until 2020's summer, the use in Tet
+Around June 2020 Transkribus  will be available as payed service, in the framework of the READ Coop:https://read.transkribus.eu/coop/ 
 
 
 ### Directoy structure
