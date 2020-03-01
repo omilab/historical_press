@@ -8,9 +8,8 @@ Convert Olive Legacy historical press Document format to Transkribus page-xml fo
 
 from lxml import etree
 from shutil import copyfile
-import os, sys, json
+import os, sys, json, csv, mmap
 import xml.etree.ElementTree as ET
-import mmap
 
 
 class Document:
@@ -154,17 +153,20 @@ class Document:
             print("ERROR in load_legacy_data for inputdir " + inputdir)
             print (e)
             print ("END ERROR \n\n")
-            sys.exit(1)
+            exit
 
     #calculate factor1 based on _144 and _160 resolutions
+    """
     def calc_factor1(self, resolution):
         return 0.494
-
+    """
     #calculate factor2 based on _144 and _160 resolutions
+    """
     def calc_factor2(self, resolution):
         return (0.01726875*int(resolution) - 0.763)
-
+    """
     #scan was done with 3 different resolutions, identify and change factors accordingly
+    
     def pick_resolution(self, legacy_meta_file):
         try:
             if self.resolution_filename_part == None:
@@ -187,9 +189,9 @@ class Document:
             print (e)
             print ("END ERROR \n\n")
             sys.exit(1)
-
-    def set_factors(self, resolution, factor1, factor2):
-        self.resolutions[resolution] = {'factor1':factor1, 'factor2':factor2}
+    
+    #def set_factors(self, resolution, factor1, factor2):
+        #self.resolutions[resolution] = {'factor1':factor1, 'factor2':factor2}
     #check if dir exists, creates it if not
     def prep_dir(self, out_dir):
         try:
@@ -213,6 +215,7 @@ class Document:
 
     #use factors to get a number converted to Transkribus standard, return it as a truncated string
     def calc_one_coordinate(self, incoord, coeff1, coeff2):
+        #print("calc_one_coordinate! - WHY?")
         try:
             return str(int(round(int(incoord)*coeff1*coeff2, 0)))
         except Exception as e:
@@ -270,20 +273,31 @@ class Document:
     def parse_legacy_page_data(self, PgCount):
         try:
             tree = etree.parse(self.PagesXmlName[PgCount])
+            #print(PgCount, self.PagesXmlName[PgCount])
+            #print("This file directory only:")
+            dir_path = (os.path.dirname(self.PagesXmlName[PgCount])) # dir of page file
+            
             MetaElement = tree.xpath('//XMD-PAGE/Meta')
+            #print("parse_legacy_page_data: ", PgCount)
             self.PagesImgHeight[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_HEIGHT"), self.factor1)
             self.PagesImgWidth[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_WIDTH"), self.factor1)
             self.HeaderPrimitives
             for node in tree.xpath('//Primitive'): #all primitives needed
                 content_id = node.get("ID")
                 self.ContentPrimitives.append(content_id)
-                content_seq = node.get("SEQ_NO")
+                
+                content_seq = node.get("SEQ_NO") 
+                content_id = node.get("ID")
                 content_box = node.get("BOX")
+                #print(content_id, content_box)
+                legacy_box = (self.get_correct_box_coordinates(content_id, dir_path))
+                left, bottom, right, top = legacy_box.split()
+                coordinates = right + "," + top + " " + left + "," + top + " " + left + "," + bottom + " " + right + "," + bottom
                 prim_type = node.get("ELEMENT_TYPE")
                 if (prim_type != self.frame_primitive_type):
                     self.PrimitivesIndexInPage[content_id] = content_seq
                     self.PrimitiveTypes[content_id] = prim_type
-                    self.RegionBoxing[content_id] = self.calc_Pg_coordinates(content_box, self.factor1)
+                    self.RegionBoxing[content_id] = coordinates
                     if (prim_type == self.headline_primitive_type):
                         self.HeaderPrimitives.append(content_id)
             for header in self.HeaderPrimitives:
@@ -299,7 +313,19 @@ class Document:
             print (e)
             print ("END ERROR \n\n")
             pass
-
+    
+    #return the correct coordinate from ar00x file for every ar00?0? id
+    def get_correct_box_coordinates(self, ar_id, path): 
+        file_name = ar_id[:-2]
+        file_path = os.path.join(path, file_name)
+        tree = etree.parse(file_path + ".xml")
+        for node in tree.xpath('//Primitive'):
+            if (node.get("ID")) == ar_id:
+                return (node.get("BOX"))
+        for node in tree.xpath('//Img'):
+            if (node.get("ID")) == ar_id:
+                return (node.get("BOX"))
+        
     def pxml_names_by_pgnum(self):
         return self.pxmlOutname
 
@@ -458,17 +484,22 @@ class Document:
                 print("ERROR - article " + self.articles[akey].entity_primary + " already exists.")
             else:
                 self.articles[akey] = tkbs_article(self.legacy_articles[akey].id,
-                             self.legacy_articles[akey].title,
+                             None,
+                             self.legacy_articles[akey].header_text,
                              self.legacy_articles[akey].primitive_primary,
                              self.legacy_articles[akey].entity_primary)
         for p in self.pages.values():
             for r in p.regions.values():
                 reg_entity = r.id[0:-2] #cut last 2 chars
+                isHeader = (r.id in self.HeaderPrimitives)
                 for a in self.legacy_articles.values():
                     for e in a.entities.values():
                         if e.id == reg_entity:
                             readingorder = int(str(p.pagenumber) + str(r.readingorder))
                             self.articles[a.id].article_regions[readingorder] = r
+                            if isHeader:
+                                self.articles[a.id].header_region = r.id
+                                self.articles[a.id].header = r.text
 
 
     def load_legacy_articles(self, metafile):
@@ -494,77 +525,108 @@ class Document:
                             print("*ERROR* TOC ENTRY ID " + eentry + " MISSING in " + metafile)
 
 
+    def export_csv(self, outdir):
+        try:
+            self.prep_dir(outdir)
+            with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
+            #with open(os.path.join(outdir, self.title + ".csv"), mode = 'wb') as o:
+                fieldnames = ['article_id', 'headline', 'region_id', 'page_id', 'line_id', 'text']
+                writer = csv.DictWriter(o, fieldnames=fieldnames)
+                writer.writeheader()
+                for a in self.articles.keys():
+                    aid = self.articles[a].id
+                    header = self.articles[a].header
+                    for r in self.articles[a].article_regions.keys():
+                        rid = self.articles[a].article_regions[r].id
+                        pid = self.articles[a].article_regions[r].pagenumber
+                        for l in self.articles[a].article_regions[r].lines.keys():
+                            lids = str(self.articles[a].article_regions[r].lines[l].id).split('l')
+                            lid = lids[len(lids)-1]
+                            writer.writerow({'article_id': str(aid), 'headline': header, 'region_id': str(rid), 'page_id': str(pid), 'line_id': str(lid), 'text': self.articles[a].article_regions[r].lines[l].text})
+                            #o.write("%s,%s,%s,%s,%s\n" %(aid, rid, pid, lid, f'{self.articles[a].article_regions[r].lines[l].text}'))
+        except Exception as e:
+            print("ERROR in export_csv " + outdir)
+            print (e)
+            print ("END ERROR \n\n")
+            pass
+
+
     def export_tei(self, outdirectory):
-        TEI = ET.Element("TEI", attrib = {"xmlns": "http://www.tei-c.org/ns/1.0", "style": "direction:rtl; unicode-bidi:embed"})
-        #------ meta data -------------------------------
-        header = ET.SubElement(TEI, "teiHeader")
-        fileDesc = ET.SubElement(header, "fileDesc")
-        titleStmt = ET.SubElement(fileDesc, "titleStmt")
-        ET.SubElement(titleStmt, "title").text = self.doc_title
-        publicationStmt = ET.SubElement(fileDesc, "publicationStmt")
-        ET.SubElement(publicationStmt, "p").text = "HAZFIRAH - NLI Olive data combined with Transkribus OCR by OMILAB sinai.rusinek@mail.huji.ac.il"
-        sourceDesc = ET.SubElement(fileDesc, "sourceDesc")
-        ET.SubElement(sourceDesc, "bibl").text = "TKBS Collection: " + str(self.colId) + " " + self.colName + ", Document: " + str(self.docId) + ", Tool: " + self.toolName
-        #----- facs physical copy data -------------------
-        facs = {}
-        surface = {}
-        graphic = {}
-        zones = {}
-        for p in self.pages:
-            facs[p] = ET.SubElement(TEI, "facsimile", attrib = {"xml:id": "page_" + str(p)})
-            surface[p] = ET.SubElement(facs[p], "surface")
-            graphic[p] = ET.SubElement(surface[p], "graphic", attrib = {"height": self.pages[p].imageHeight + "px",
-                   "width": self.pages[p].imageWidth + "px",
-                   "url": self.pages[p].imageFilename})
-            for r in self.pages[p].regions:
-                rid = self.pages[p].regions[r].id
-                zones[rid] = ET.SubElement(surface[p],
-                     "zone",
-                     attrib = {"xml:id": rid,
-                               "rendition": "TextRegion",
-                               "points": self.pages[p].regions[r].coordinates})
-                for l in self.pages[p].regions[r].lines:
-                    lid = self.pages[p].regions[r].lines[l].id
-                    zones[lid] = ET.SubElement(zones[rid],
-                        "zone",
-                        attrib = {"xml:id": lid,
-                               "rendition": "Line",
-                               "points": self.pages[p].regions[r].lines[l].coordinates.get("points")}) #line coordinates
-        #-------- data -----------------------------------
-        text = ET.SubElement(TEI, "text")
-        body = ET.SubElement(text, "body")
-        current_page = 0
-        pages = {} #page beginnings
-        divs = {} #articles
-        heads = {} #titles
-        p = {} #regions / primitives
-        for a in self.articles:
-            a_id = self.articles[a].id
-            if current_page == 0:
-                pages[1] = ET.SubElement(body, "pb", attrib = {"n": "1", "facs": "page_1"})
-                current_page = 1
-            divs[a_id] = ET.SubElement(body, "div", attrib = {"xml:id": a_id}) #TBD
-            heads[a_id] = ET.SubElement(divs[a_id], "head").text = self.articles[a].title #TBD
-            for r in self.articles[a].article_regions:
-                r_id = self.articles[a].article_regions[r].id
-                r_page = self.articles[a].article_regions[r].pagenumber
-                if current_page != r_page:
-                    pages[r_page] = ET.SubElement(body, "pb", attrib = {"n": str(r_page), "facs": "page_" + str(r_page)})
-                    current_page = r_page
-                p_text_with_floating_tags = ""
-                for l in self.articles[a].article_regions[r].lines:
-                    l_id = self.articles[a].article_regions[r].lines[l].id
-                    #lb[l_id] = ET.SubElement(p[r_id], "lb", attrib = {"facs": l_id}).text = self.articles[a].article_regions[r].lines[l].text #TBD
-                    p_text_with_floating_tags += self.articles[a].article_regions[r].lines[l].text + \
-                    '\n<lb facs=' + '"' + l_id + '"' + '/>'
-                p_text_with_floating_tags = '<p>' + p_text_with_floating_tags + '</p>'
-                p[r_id] = ET.fromstring(p_text_with_floating_tags)
-                p[r_id].set("facs", r_id)
-                divs[a_id].append(p[r_id])
-        tree = ET.ElementTree(TEI)
-        tree.write(os.path.join(outdirectory, self.title + "_tei.xml"), encoding="UTF-8", xml_declaration=True)
-
-
+        try:
+            TEI = ET.Element("TEI", attrib = {"xmlns": "http://www.tei-c.org/ns/1.0", "style": "direction:rtl; unicode-bidi:embed"})
+            #------ meta data -------------------------------
+            header = ET.SubElement(TEI, "teiHeader")
+            fileDesc = ET.SubElement(header, "fileDesc")
+            titleStmt = ET.SubElement(fileDesc, "titleStmt")
+            ET.SubElement(titleStmt, "title").text = self.doc_title
+            publicationStmt = ET.SubElement(fileDesc, "publicationStmt")
+            ET.SubElement(publicationStmt, "p").text = "HAZFIRAH - NLI Olive data combined with Transkribus OCR by OMILAB sinai.rusinek@mail.huji.ac.il"
+            sourceDesc = ET.SubElement(fileDesc, "sourceDesc")
+            ET.SubElement(sourceDesc, "bibl").text = "TKBS Collection: " + str(self.colId) + " " + self.colName + ", Document: " + str(self.docId) + ", Tool: " + self.toolName
+            #----- facs physical copy data -------------------
+            facs = {}
+            surface = {}
+            graphic = {}
+            zones = {}
+            for p in self.pages:
+                facs[p] = ET.SubElement(TEI, "facsimile", attrib = {"xml:id": "page_" + str(p)})
+                surface[p] = ET.SubElement(facs[p], "surface")
+                graphic[p] = ET.SubElement(surface[p], "graphic", attrib = {"height": self.pages[p].imageHeight + "px", 
+                       "width": self.pages[p].imageWidth + "px", 
+                       "url": self.pages[p].imageFilename})
+                for r in self.pages[p].regions:
+                    rid = self.pages[p].regions[r].id
+                    zones[rid] = ET.SubElement(surface[p], 
+                         "zone", 
+                         attrib = {"xml:id": rid, 
+                                   "rendition": "TextRegion", 
+                                   "points": self.pages[p].regions[r].coordinates})
+                    for l in self.pages[p].regions[r].lines:
+                        lid = self.pages[p].regions[r].lines[l].id
+                        zones[lid] = ET.SubElement(zones[rid], 
+                            "zone", 
+                            attrib = {"xml:id": lid, 
+                                   "rendition": "Line", 
+                                   "points": self.pages[p].regions[r].lines[l].coordinates.get("points")}) #line coordinates
+            #-------- data -----------------------------------
+            text = ET.SubElement(TEI, "text")
+            body = ET.SubElement(text, "body")
+            current_page = 0
+            pages = {} #page beginnings
+            divs = {} #articles
+            heads = {} #titles
+            p = {} #regions / primitives
+            for a in self.articles:
+                a_id = self.articles[a].id
+                if current_page == 0:
+                    pages[1] = ET.SubElement(body, "pb", attrib = {"n": "1", "facs": "page_1"})
+                    current_page = 1
+                divs[a_id] = ET.SubElement(body, "div", attrib = {"xml:id": a_id})
+                heads[a_id] = ET.SubElement(divs[a_id], "head").text = self.articles[a].header #TBD
+                for r in self.articles[a].article_regions:
+                    r_id = self.articles[a].article_regions[r].id
+                    r_page = self.articles[a].article_regions[r].pagenumber
+                    if current_page != r_page:
+                        pages[r_page] = ET.SubElement(body, "pb", attrib = {"n": str(r_page), "facs": "page_" + str(r_page)})
+                        current_page = r_page
+                    p_text_with_floating_tags = ""
+                    for l in self.articles[a].article_regions[r].lines:
+                        l_id = self.articles[a].article_regions[r].lines[l].id
+                        #lb[l_id] = ET.SubElement(p[r_id], "lb", attrib = {"facs": l_id}).text = self.articles[a].article_regions[r].lines[l].text #TBD
+                        p_text_with_floating_tags += self.articles[a].article_regions[r].lines[l].text + \
+                        '\n<lb facs=' + '"' + l_id + '"' + '/>'
+                    p_text_with_floating_tags = '<p>' + p_text_with_floating_tags + '</p>'
+                    p[r_id] = ET.fromstring(p_text_with_floating_tags)
+                    p[r_id].set("facs", r_id)
+                    divs[a_id].append(p[r_id])
+            tree = ET.ElementTree(TEI)
+            tree.write(os.path.join(outdirectory, self.title + "_tei.xml"), encoding="UTF-8", xml_declaration=True)
+        except Exception as e:
+            print("ERROR in export_tei " + outdirectory)
+            print (e)
+            print ("END ERROR \n\n")
+            pass
+        
 class tkbs_page:
 
     def __init__(self, pgxml, number, schema):
@@ -624,18 +686,19 @@ class tkbs_region:
 
 class tkbs_article:
 
-    def __init__(self, toc_entry_id, title, primitive_primary, entity_primary):
+    def __init__(self, toc_entry_id, header_region, header, primitive_primary, entity_primary):
         self.id = "toc_" + toc_entry_id
-        self.title = title
+        self.header_region = header_region
+        self.header = header
         self.primitive_primary = primitive_primary
         self.entity_primary = entity_primary
         self.article_regions = {}
 
 class legacy_article:
 
-    def __init__(self, toc_entry_id, title, primitive_primary, entity_primary):
+    def __init__(self, toc_entry_id, header_text, primitive_primary, entity_primary):
         self.id = toc_entry_id
-        self.title = title
+        self.header_text = header_text
         self.primitive_primary = primitive_primary
         self.entity_primary = entity_primary
         self.entities = {}
