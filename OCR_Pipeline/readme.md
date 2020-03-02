@@ -38,7 +38,7 @@ For the demo, we will use the directory "resources_for_tests" which included in 
 You will see that the directory structure is like the description above.
 
 Execute the script "legacy_to_tkbs_format_converter.py" via command line (or any other way you choose). Now, you'll be asked to insert the path of the  directory that you want to convert. You can choose parnet folder and all the sub-folders will be converted.
-![image1](OCR_Pipeline/images for tutorial/tutorial1.JPG)
+![image1](https://raw.githubusercontent.com/yanirmr/historical_press/master/OCR_Pipeline/images_for_tutorial/tutorial1.JPG)
 ![image1](OCR_Pipeline/images for tutorial/tutorial2.JPG)
 ![image1](OCR_Pipeline/images for tutorial/tutorial3.JPG)
     
