@@ -30,7 +30,18 @@ A Newspaper folder that includes:
           * Img folder that includes images of all the objects in the page together and alone.
 
 ## Tutorial
+It should be noted that the parts are not interdependent. Although they are part of one pipeline, only the relevant stages can be used without any particular problem.
+### Part 1 - Legacy format to Transkribus formt converter
+This script allows the user to convert directories from the legacy format into the PAGE.XML files that can be uploaded later into Transkribus or used in another way.
 
+For the demo, we will use the directory "resources_for_tests" which included in the repo. 
+You will see that the directory structure is like the description above.
+
+Execute the script "legacy_to_tkbs_format_converter.py" via command line (or any other way you choose). Now, you'll be asked to insert the path of the  directory that you want to convert. You can choose parnet folder and all the sub-folders will be converted.
+![image1](OCR_Pipeline/images for tutorial/tutorial1.JPG)
+![image1](OCR_Pipeline/images for tutorial/tutorial2.JPG)
+![image1](OCR_Pipeline/images for tutorial/tutorial3.JPG)
+    
 ## Roadmap
 Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. We plan to add a conversion of this information directly into the page.xml as custom attribute values of text regions.
 
