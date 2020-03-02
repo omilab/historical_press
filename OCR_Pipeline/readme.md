@@ -56,7 +56,8 @@ This project was initiated and created by [OMILab](https://www.openu.ac.il/en/om
 [OmiLab’s project on Historical Newspaper Archive Research](https://www.openu.ac.il/en/omilab/pages/historicalnewspaper.aspx) is run in collaboration with the [Historical Jewish Press collection](https://web.nli.org.il/sites/JPress/English) of the Tel Aviv University and the National Library of Israel, that provided access to selected image and OCR output files at the back end of JPRESS 
 
 ## License
-The code is licensed under a [Creative Commons Attribution-Share Alike 3. 0] (https://creativecommons.org/licenses/by-sa/4.0/). You are welcome to copy and redistribute the material in any medium or format, remix, transform, and build upon the material for any purpose, even commercially,  as long as you give appropriate credit to OMILab, provide a link to the license,  indicate if changes were made and distribute your contributions under the same license as the original. 
+<img src="https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/CC-BY-SA_icon.svg.png" width="200" height="50" />
+The code is licensed under a [Creative Commons Attribution-Share Alike 3. 0](https://creativecommons.org/licenses/by-sa/4.0/). You are welcome to copy and redistribute the material in any medium or format, remix, transform, and build upon the material for any purpose, even commercially,  as long as you give appropriate credit to OMILab, provide a link to the license,  indicate if changes were made and distribute your contributions under the same license as the original. 
 
 ## Related projects
 - [Transkribus Project](https://github.com/Transkribus)
