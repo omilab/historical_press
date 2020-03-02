@@ -38,9 +38,13 @@ For the demo, we will use the directory "resources_for_tests" which included in 
 You will see that the directory structure is like the description above.
 
 Execute the script "legacy_to_tkbs_format_converter.py" via command line (or any other way you choose). Now, you'll be asked to insert the path of the  directory that you want to convert. You can choose parnet folder and all the sub-folders will be converted.
-![image1](https://raw.githubusercontent.com/yanirmr/historical_press/master/OCR_Pipeline/images_for_tutorial/tutorial1.JPG)
-![image1](OCR_Pipeline/images for tutorial/tutorial2.JPG)
-![image1](OCR_Pipeline/images for tutorial/tutorial3.JPG)
+![insert path please](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial1.JPG)
+
+In our case we will take "resources_for_tests":
+![resources_for_tests](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial2.JPG)
+
+After the script will be executed (it supposed to be very quickly - less than one second per folder; depending on size, of course). You should get succesful response that containing an update on the number of successfully converted folders and where to find them now.
+![succesful response](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial3.JPG)
     
 ## Roadmap
 Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. We plan to add a conversion of this information directly into the page.xml as custom attribute values of text regions.
