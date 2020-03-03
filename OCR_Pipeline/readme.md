@@ -1,9 +1,13 @@
 # HOP  (Historical OCR Pipeline)
 ## Introduction
-HOP is a pipeline that transform prxml via [Transkribus](https://transkribus.eu/Transkribus/) to research corpus.
-The pipeline get prxml files and text images as an input, convert them and upload to Transkribus. Then, the workflow in Transkribus done (lines segmentation, OCR etc.) and the resulting product is better OCR text for further analysis.
+HOP is a tool that can massively handle legacy products of various OCR systems, such as Olive Software's system products and bring more accurate OCR using [Transkribus](https://transkribus.eu/Transkribus/). It is a pipeline that transforms PRXML files via Transkribus to a research corpusand deal with the challenge of improving the OCR without losing the valuable work that was done hitherto to analyze the layout and content structure of the newspapers. 
+for this we created an workflow which converts the legacy format to an open format, on which the improved text recognition technologies can run to produce improved output which meets the threshold and requirements of text analytical research.
 
-It is a tool that can massively handle legacy products of various OCR systems, such as Olive Software's system products and bring more accurate OCR using Transkribus. In detail, the challenge the tool deal with is enable improving the OCR without losing the valuable work that was done to analyze the layout and content structure of the newspapers; for this we created an open workflow which migrates legacy segmentation data into the open Page format, on which the improved text recognition technologies can run, and then outputs the data as a TEI-XML encoded and enriched corpus.
+The pipeline is consisted of three subsequent but independent stages: 
+In part one, the pipeline gets PRXML files and images as input, and converts their region segmentation data  into the open PAGE.XML format (see also road map 1 below).
+The second part uploads the files to Transkribus using its API. In Trankribus, line detection and text recognition is preformed and the resulting product is a better OCR text.
+The third part takes Transkribus' output and migrates it to several formats that facilitate text analytical methods: plain text files, XML-TEI, and tabular data in TSV files (see also road map 2 below).
+
 
 ## Getting started
 
@@ -13,8 +17,8 @@ It is a tool that can massively handle legacy products of various OCR systems, s
 - HTR model in Transkribus (for Hebrew 19th century press, we used 'OMILab')
 - Layout analysis line detection model (e.g. Preset)
 
-##### Notes on using in Transkribus
-Around June 2020 Transkribus  will be available as payed service, in the framework of the READ Coop:https://read.transkribus.eu/coop/ 
+##### Notes on using Transkribus' services:
+Around June 2020 Transkribus  will be available as payed service, in the framework of the READ Coop:  https://read.transkribus.eu/coop/. 
 
 
 ### Directoy structure
@@ -47,8 +51,8 @@ After the script will be executed (it supposed to be very quickly - less than on
 ![succesful response](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial3.JPG)
     
 ## Roadmap
-Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. We plan to add a conversion of this information directly into the page.xml as custom attribute values of text regions.
-
+1.Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. Further development will add a conversion of this information directly into the page.xml as custom attribute values of text regions.
+2.In order to avail the output to external viewers the PAGE.XML will have to be converted to the viewer's input formats (e.g., METZ @ ALTO#)
 
 ## Authors
 This project was initiated and created by [OMILab](https://www.openu.ac.il/en/omilab).
