@@ -1,12 +1,12 @@
 # HOP  (Historical OCR Pipeline)
 ## Introduction
-HOP is a tool that can massively handle legacy products of various OCR systems, such as Olive Software's system products and bring more accurate OCR using [Transkribus](https://transkribus.eu/Transkribus/). It is a pipeline that transforms PRXML files via Transkribus to a research corpusand deal with the challenge of improving the OCR without losing the valuable work that was done hitherto to analyze the layout and content structure of the newspapers. 
-for this we created an workflow which converts the legacy format to an open format, on which the improved text recognition technologies can run to produce improved output which meets the threshold and requirements of text analytical research.
+HOP is a tool that can massively handle legacy products of various OCR systems, such as Olive Software's system products and bring more accurate OCR using [Transkribus](https://transkribus.eu/Transkribus/). It is a pipeline that transforms PRXML files via Transkribus into a research corpus,  and deals with the challenge of improving the OCR without losing the valuable work that was done hitherto to analyze the layout and content structure of the newspapers. 
+for this we created an workflow which converts the legacy format to an open format, on which the improved text recognition technologies can run to produce improved output that meets the threshold and requirements of text analytical research.
 
-The pipeline is consisted of three subsequent but independent stages: 
-In part one, the pipeline gets PRXML files and images as input, and converts their region segmentation data  into the open PAGE.XML format (see also road map 1 below).
-The second part uploads the files to Transkribus using its API. In Trankribus, line detection and text recognition is preformed and the resulting product is a better OCR text.
-The third part takes Transkribus' output and migrates it to several formats that facilitate text analytical methods: plain text files, XML-TEI, and tabular data in TSV files (see also road map 2 below).
+The pipeline consists of three subsequent but independent stages: 
+- In part one, the pipeline gets PRXML files and images as input, and converts their region segmentation data  into the open PAGE.XML format (see also road map 1 below).
+- The second part uploads the files to Transkribus using its API. In Trankribus, line detection and text recognition are preformed and the resulting product is a better OCR text, framed in the original text regions.
+- The third part takes Transkribus' output and migrates it to several formats that facilitate text analytical methods: plain text files, XML-TEI, and tabular data in TSV files (see also road map 2 below).
 
 
 ## Getting started
@@ -35,7 +35,7 @@ A Newspaper folder that includes:
 
 ## Tutorial
 It should be noted that the parts are not interdependent. Although they are part of one pipeline, only the relevant stages can be used without any particular problem.
-### Part 1 - Legacy format to Transkribus formt converter
+### Part 1 - Legacy format to Transkribus format converter
 This script allows the user to convert directories from the legacy format into the PAGE.XML files that can be uploaded later into Transkribus or used in another way.
 
 For the demo, we will use the directory "resources_for_tests" which included in the repo. 
@@ -57,7 +57,7 @@ After the script will be executed (it supposed to be very quickly - less than on
 ## Authors
 This project was initiated and created by [OMILab](https://www.openu.ac.il/en/omilab).
 
-[OmiLab’s project on Historical Newspaper Archive Research](https://www.openu.ac.il/en/omilab/pages/historicalnewspaper.aspx) is run in collaboration with the [Historical Jewish Press collection](https://web.nli.org.il/sites/JPress/English) of the Tel Aviv University and the National Library of Israel, that provided access to selected image and OCR output files at the back end of JPRESS 
+[OmiLab’s project on Historical Newspaper Archive Research](https://www.openu.ac.il/en/omilab/pages/historicalnewspaper.aspx) is run in collaboration with the [Historical Jewish Press project](https://web.nli.org.il/sites/JPress/English) of the Tel Aviv University and the National Library of Israel.  [The National Library of Israel (https://web.nli.org.il/sites/nli/english/pages/default.aspx)] provided access to selected image and OCR output files at the back end of JPRESS. 
 
 ## License
 <img src="https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/CC-BY-SA_icon.svg.png" width="200" height="50" />
