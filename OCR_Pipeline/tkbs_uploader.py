@@ -33,7 +33,7 @@ class Config:
             self.collection_id = set_collection_id()
             self.line_detection = set_line_detection_id()
             self.htr_model_id = set_htr_model_id()
-            self.dst_path = set_source_path()
+            self.dst_path = set_destination_path()
         else:
             self.username, self.password, self.src_path, self.collection_id, self.line_detection, self.htr_model_id, \
             self.dst_path = config_parameters
@@ -119,7 +119,8 @@ def extract_json_for_tkbs_from_toc_file(toc_folder_path="resources_for_tests\\19
     img_objects = {}
 
     for key, value in page_images.items():
-        with open(os.path.join(images_and_xmls_folder_path, value), 'rb') as file:
+        file_path = os.path.join(images_and_xmls_folder_path, value)
+        with open(file_path, 'rb') as file:
             img_objects[key] = file.read()
 
     xml_objects = {}
@@ -275,7 +276,6 @@ def get_page_ids_from_document_id(collection_id, document_id, tkbs_client):
 def upload_pipeline(config):
     p = Document()
     folders_to_be_uploaded = find_sub_folders_with_toc_file(config.src_path)
-
     for folder in folders_to_be_uploaded:
         tkbs_client = connect_to_tkbs(config)
         # output_folder is the folder that legacy_to_tkbs_converter save the output of this folder
@@ -286,25 +286,28 @@ def upload_pipeline(config):
                                                                             author=config.username,
                                                                             description="pipeline")
         document_id = upload(config.collection_id, tkbs_client, json_as_str, img_and_xml_list, config)
-        print("0")
-        """
+
+        print("** Document uploaded **")
+
         if True:  # TODO: add condition for check if line detection needed
             detection_status = line_detection(config.collection_id, document_id, tkbs_client, config)
             if not detection_status:
                 print("ERROR - document failed line detection " + p.title)
                 continue
-        """
-        print("1")
-        """
+
+        print("Line detection done...")
+
         if config.htr_model_id != "":
             run_ocr(config.collection_id, config.htr_model_id, "", document_id, tkbs_client, config)
-        """
-        print("2")
+
+        print("OCR done...")
+
         if config.dst_path != "":
             dest_folder = os.path.join(config.dst_path, "output", os.path.basename(os.path.normpath(folder)))
             print(dest_folder)
             download(config.collection_id, document_id, dest_folder, tkbs_client, config)
-        print("3")
+
+        print("** Document downloaded **")
         time.sleep(40)
 
 
