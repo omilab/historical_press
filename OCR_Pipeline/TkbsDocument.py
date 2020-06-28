@@ -162,9 +162,10 @@ class Document:
 
     #calculate factor2 based on _144 and _160 resolutions
 
+
     def calc_factor2(self, resolution):
         return (0.01726875*int(resolution) - 0.763)
-
+    """
     #scan was done with 3 different resolutions, identify and change factors accordingly
     
     def pick_resolution(self, legacy_meta_file):
