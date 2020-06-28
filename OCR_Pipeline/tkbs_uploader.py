@@ -38,7 +38,7 @@ class Config:
             self.username, self.password, self.src_path, self.collection_id, self.line_detection, self.htr_model_id, \
             self.dst_path = config_parameters
 
-        # print(self.username, self.password, self.src_path, self.collection_id, self.htr_model_id, self.dst_path)
+        #print(self.username, self.password, self.src_path, self.collection_id, self.htr_model_id, self.dst_path)
 
 
 def set_username():
@@ -197,7 +197,12 @@ def run_ocr(collection_id, HTR_model_id, dictionary_name, document_id, tkbs_clie
 def download(collection_id, document_id, target_folder, tkbs_client, config=None):
     print("Downloading...")
     try:
-        os.makedirs(target_folder, exist_ok=True)
+        if os.path.isdir(target_folder):
+            start_time = str(datetime.now().strftime("%y-%m-%d_%H-%M-%S"))
+            target_folder = os.path.join(target_folder, "output " + start_time)
+            os.makedirs(target_folder)
+        else:
+            os.makedirs(target_folder)
         print(target_folder)
         response = tkbs_client.download_document(collection_id, document_id, target_folder)
         print(response)
@@ -276,6 +281,7 @@ def get_page_ids_from_document_id(collection_id, document_id, tkbs_client):
 def upload_pipeline(config):
     p = Document()
     folders_to_be_uploaded = find_sub_folders_with_toc_file(config.src_path)
+    #print(folders_to_be_uploaded)
     for folder in folders_to_be_uploaded:
         tkbs_client = connect_to_tkbs(config)
         # output_folder is the folder that legacy_to_tkbs_converter save the output of this folder
@@ -292,7 +298,7 @@ def upload_pipeline(config):
         if True:  # TODO: add condition for check if line detection needed
             detection_status = line_detection(config.collection_id, document_id, tkbs_client, config)
             if not detection_status:
-                print("ERROR - document failed line detection " + p.title)
+                print("ERROR - document failed line detection " + str(p.title))
                 continue
 
         print("Line detection done...")
