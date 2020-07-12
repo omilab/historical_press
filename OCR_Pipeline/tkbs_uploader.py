@@ -400,8 +400,7 @@ def upload_pipeline(config):
             exportfolder = os.path.join(outfolder, "tkbs_" + uniquename)
             prep_dir(exportfolder)
             
-            sfolder_partname = sfolder.replace(config.src_path + '\\', "")
-            firstexportdir = os.path.join(legacy_output, sfolder_partname)
+            firstexportdir = sfolder.replace(config.src_path, legacy_output)
             if not os.path.isdir(firstexportdir):
                 print("Skipping... TKBS output missing under " + firstexportdir)
                 continue
