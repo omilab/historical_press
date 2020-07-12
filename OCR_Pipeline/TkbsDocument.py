@@ -126,7 +126,7 @@ class Document:
             for pgElement in tree.xpath('//Page'):
                 pgNum = pgElement.get("PAGE_NO")
                 pgImage = pgElement.get("ID") + self.resolution_filename_part + ".png"
-                pxmlOutname = pgElement.get("ID") + self.resolution_filename_part + ".xml"
+                pxmlOutname = pgElement.get("ID") + self.resolution_filename_part + ".pxml"
                 pgXml = pgElement.get("ID") + ".xml"
                 self.PagesImgName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, self.inputdir_images, pgImage)
                 self.PagesXmlName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, pgXml)
@@ -156,20 +156,18 @@ class Document:
             exit
 
     #calculate factor1 based on _144 and _160 resolutions
-
+    """
     def calc_factor1(self, resolution):
         return 0.494
-
+    """
     #calculate factor2 based on _144 and _160 resolutions
-
-
+    """
     def calc_factor2(self, resolution):
         return (0.01726875*int(resolution) - 0.763)
     """
     #scan was done with 3 different resolutions, identify and change factors accordingly
     
     def pick_resolution(self, legacy_meta_file):
-
         try:
             if self.resolution_filename_part == None:
                 tree = etree.parse(legacy_meta_file)
@@ -454,7 +452,7 @@ class Document:
                 self.toolName = data["pageList"]["pages"][0]["tsList"]["transcripts"][0]["toolName"]
                 for p in data["pageList"]["pages"]:
                     pnumber = p["pageNr"]
-                    pxml = os.path.join(self.tkbs_load_dir, p["imgFileName"].replace(".png", ".xml"))
+                    pxml = os.path.join(self.tkbs_load_dir, p["imgFileName"].replace(".png", ".pxml"))
                     if os.path.isfile(pxml):
                         self.pages[pnumber] = tkbs_page(pxml, pnumber, self.tkbs_xml_schema)
 
