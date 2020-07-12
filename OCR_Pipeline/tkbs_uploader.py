@@ -417,6 +417,10 @@ def upload_pipeline(config):
             docjson = download(collec, str(docid), target_dir, tkbs, p.tkbs_meta_filename)
             pageids = p.load_tkbs_page_ids(docjson)
             
+            if config.line_detection.upper() != "YES":
+                v and print("Skipping from Line Detection and on...")
+                continue
+            
             v and print("---   LINE DETECTION          ---")
             detection_status = line_detect(collec, docid, pageids, tkbs)
             if not detection_status:
@@ -448,7 +452,10 @@ def upload_pipeline(config):
             pdocjson = download(collec, str(xdocid), preocr_dir, tkbs, p.tkbs_meta_filename)
             ppageids = p.load_tkbs_page_ids(pdocjson)
             
-            
+            if len(HTRmodelid) < 2:
+                v and print("Skipping from Htr and on...")
+                continue
+                
             v and print("---   RUNNING OCR          ---")
             ocr_status = run_ocr(collec, HTRmodelid, "", str(xdocid), ppageids, tkbs)
             if not ocr_status:
