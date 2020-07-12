@@ -1,5 +1,6 @@
-import os
-import datetime
+import os, shutil
+import glob 
+#import datetime
 from TkbsDocument import Document
 
 
@@ -21,17 +22,17 @@ def get_path_from_user():
 
 def find_sub_folders_with_toc_file(dir_path):  # Get absolute path
     sub_folders_with_TOC_file = []
-    for subdir, dirs, files in os.walk(dir_path):
-        for file in files:
-            if file == "TOC.xml":
-                sub_folders_with_TOC_file.append(subdir)
+    tocs = glob.glob(dir_path + '*\\*\\TOC.xml')
+    for t in tocs:
+        sub_folders_with_TOC_file.append(os.path.dirname(t))
     return sub_folders_with_TOC_file
 
 
 def create_unique_output_folder(dir_path):
-    start_time = str(datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S"))
-    output_path = os.path.join(dir_path, "output " + start_time)
-    os.mkdir(output_path)
+    #start_time = str(datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S"))
+    output_path = os.path.join(dir_path, "legacy_output")
+    if not os.path.isdir(output_path):
+        os.mkdir(output_path)
     return output_path
 
 
@@ -40,6 +41,8 @@ def create_sub_folders_in_output_folder(output_dir_path, folders_to_be_converted
     for folder in folders_to_be_converted:
         folder_name = os.path.basename(os.path.normpath(folder))
         output_sub_folder_path = os.path.join(output_dir_path, folder_name)
+        if os.path.isdir(output_sub_folder_path):
+            shutil.rmtree(output_sub_folder_path)
         os.mkdir(output_sub_folder_path)
         output_sub_folders.append(output_sub_folder_path)
     return output_sub_folders
