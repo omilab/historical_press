@@ -26,8 +26,8 @@ For proper system operation, make sure the folder structure is as described belo
 A Newspaper folder that includes:
   * TOC.xml file
   * Documnet folder that includes:
-        * PDF of the newspaper issue
-        * A Folder for every newspaper page that includes:
+        - PDF of the newspaper issue
+        - A Folder for every newspaper page that includes:
           * PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
           * ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
           * AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
@@ -59,7 +59,7 @@ With this part of the script you will upload your data to the Transkribus server
 * the id of the HTR model
 For convenience sake you can skip these stages by saving a file titled conf.json in the folder which includes this information:
 
-<img src="https://github.com/omilab/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/conf.JPG" width="150" height="150" />
+<img src="https://github.com/omilab/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/conf.JPG" width="250" height="250" />
 
     
 ## Roadmap
