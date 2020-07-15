@@ -58,7 +58,7 @@ With this part of the script you will upload your data to the Transkribus server
 * the id of the collection in Transkribus where you would like to store the newspaper issues.
 * the id of the HTR model
 For convenience sake you can skip these stages by saving a file titled conf.json in the folder which includes this information:
-![conf.json](https://github.com/historical_press/OCR_Pipeline/images_for_tutorial/conf.png)
+![conf.json](https://github.com/historical_press/OCR_Pipeline/images_for_tutorial/conf.JPG)
 
 
     
