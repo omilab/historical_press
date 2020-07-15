@@ -49,6 +49,25 @@ In our case we will take "resources_for_tests":
 
 After the script will be executed (it supposed to be very quickly - less than one second per folder; depending on size, of course). You should get succesful response that containing an update on the number of successfully converted folders and where to find them now.
 ![succesful response](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial3.JPG)
+### Part 2 - Work with Transkribus' API
+
+With this part of the script you will upload your data to the Transkribus server, run layout analysis and your chosen HTR model. When running the script "tkbs_uploader.py" you will be prompted to insert:
+* your transkribus username
+* your transkribus password
+* source path (use the same path you used for the first stage to work on the results of the conversion from legacy files)
+* the id of the collection in Transkribus where you would like to store the newspaper issues.
+* the id of the HTR model
+For convenience sake you can skip these stages by saving a file titled conf.json in the folder which includes this information:
+{
+    "username": "someone@email",
+    "password": "whichever",
+    "src_path": "/Users/...",
+    "collection_id": id_number,
+    "htr_model_id": id_number,
+    "dst_path": "/Users/...",
+    "line_detection": "yes"
+}
+
     
 ## Roadmap
 1.Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. Further development will add a conversion of this information directly into the page.xml as custom attribute values of text regions.
