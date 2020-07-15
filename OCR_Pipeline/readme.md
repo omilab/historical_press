@@ -41,7 +41,7 @@ This script allows the user to convert directories from the legacy format into t
 For the demo, we will use the directory "resources_for_tests" which included in the repo. 
 You will see that the directory structure is like the description above.
 
-Execute the script "legacy_to_tkbs_format_converter.py" via command line (or any other way you choose). Now, you'll be asked to insert the path of the  directory that you want to convert. You can choose parnet folder and all the sub-folders will be converted.
+Execute the script "legacy_to_tkbs_format_converter.py" via command line (or any other way you choose). Now, you'll be asked to insert the path of the  directory that you want to convert. You can choose a parent folder, and all the sub-folders will be converted.
 ![insert path please](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial1.JPG)
 
 In our case we will take "resources_for_tests":
