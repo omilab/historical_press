@@ -35,6 +35,7 @@ A Newspaper folder that includes:
 
 ## Tutorial
 It should be noted that the parts are not interdependent. Although they are part of one pipeline, only the relevant stages can be used without any particular problem.
+
 ### Part 1 - Legacy format to Transkribus format converter
 This script allows the user to convert directories from the legacy format into the PAGE.XML files that can be uploaded later into Transkribus or used in another way.
 
@@ -49,15 +50,15 @@ In our case we will take "resources_for_tests":
 
 After the script will be executed (it supposed to be very quickly - less than one second per folder; depending on size, of course). You should get succesful response that containing an update on the number of successfully converted folders and where to find them now.
 ![succesful response](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial3.JPG)
-### Part 2 - Work with Transkribus' API
 
+### Part 2 - Work with Transkribus' API
 With this part of the script you will upload your data to the Transkribus server, run layout analysis and your chosen HTR model. When running the script "tkbs_uploader.py" you will be prompted to insert:
 * your transkribus username
 * your transkribus password
 * source path (use the same path you used for the first stage to work on the results of the conversion from legacy files)
 * the id of the collection in Transkribus where you would like to store the newspaper issues.
 * the id of the HTR model
-For convenience sake you can skip these stages by saving a file titled conf.json in the folder which includes this information:
+For convenience sake you can skip these stages by saving a file titled conf.json in the OCR_Pipeline folder, which includes this information:
 
 <img src="https://github.com/omilab/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/conf.JPG" width="300" height="250" />
 
@@ -67,7 +68,7 @@ For convenience sake you can skip these stages by saving a file titled conf.json
 2.In order to avail the output to external viewers the PAGE.XML will have to be converted to the viewer's input formats (e.g., METZ @ ALTO#)
 
 ## Authors
-This project was initiated and created by [OMILab](https://www.openu.ac.il/en/omilab).
+This project was initiated at [OMILab](https://www.openu.ac.il/en/omilab) and the pipeline was created by Nurit Greidinger, Yanir Marmor and Sinai Rusinek.
 
 [OmiLab’s project on Historical Newspaper Archive Research](https://www.openu.ac.il/en/omilab/pages/historicalnewspaper.aspx) is run in collaboration with the [Historical Jewish Press project](https://web.nli.org.il/sites/JPress/English) of the Tel Aviv University and the National Library of Israel.  [The National Library of Israel (https://web.nli.org.il/sites/nli/english/pages/default.aspx)] provided access to selected image and OCR output files at the back end of JPRESS. 
 
