@@ -18,7 +18,7 @@ The pipeline consists of three subsequent but independent stages:
 - Layout analysis line detection model (e.g. Preset)
 
 ##### Notes on using Transkribus' services:
-Around June 2020 Transkribus  will be available as payed service, in the framework of the READ Coop:  https://read.transkribus.eu/coop/. 
+Around September 2020 Transkribus  will be available as payed service, in the framework of the READ Coop:  https://read.transkribus.eu/coop/. 
 
 
 ### Directoy structure
