@@ -132,7 +132,7 @@ class Document:
             for pgElement in tree.xpath('//Page'):
                 pgNum = pgElement.get("PAGE_NO")
                 pgImage = pgElement.get("ID") + self.resolution_filename_part + ".png"
-                pxmlOutname = pgElement.get("ID") + self.resolution_filename_part + ".pxml"
+                pxmlOutname = pgElement.get("ID") + self.resolution_filename_part + ".xml"
                 pgXml = pgElement.get("ID") + ".xml"
                 self.PagesImgName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, self.inputdir_images, pgImage)
                 self.PagesXmlName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, pgXml)
@@ -458,7 +458,7 @@ class Document:
                 self.toolName = data["pageList"]["pages"][0]["tsList"]["transcripts"][0]["toolName"]
                 for p in data["pageList"]["pages"]:
                     pnumber = p["pageNr"]
-                    pxml = os.path.join(self.tkbs_load_dir, p["imgFileName"].replace(".png", ".pxml"))
+                    pxml = os.path.join(self.tkbs_load_dir, p["imgFileName"].replace(".png", ".xml"))
                     if os.path.isfile(pxml):
                         self.pages[pnumber] = tkbs_page(pxml, pnumber, self.tkbs_xml_schema)
 
@@ -556,7 +556,33 @@ class Document:
             print ("END ERROR \n\n")
             pass
 
-    def export_csv(self, outdir):
+    def export_csv_regions(self, outdir):
+        try:
+            self.prep_dir(outdir)
+            with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
+            #with open(os.path.join(outdir, self.title + ".csv"), mode = 'wb') as o:
+                fieldnames = ['article_id', 'headline', 'region_id', 'page_id', 'text']
+                writer = csv.DictWriter(o, fieldnames=fieldnames)
+                writer.writeheader()
+                for a in self.articles.keys():
+                    aid = self.articles[a].id
+                    header = self.articles[a].header
+                    for r in self.articles[a].article_regions.keys():
+                        region_text = ""
+                        rid = self.articles[a].article_regions[r].id
+                        pid = self.articles[a].article_regions[r].pagenumber
+                        for l in self.articles[a].article_regions[r].lines.keys():
+                            region_text = " ".join([region_text, self.articles[a].article_regions[r].lines[l].text])
+                        writer.writerow({'article_id': str(aid), 'headline': header, 'region_id': str(rid), 'page_id': str(pid), 'text': region_text})
+
+        except Exception as e:
+            print("ERROR in export_csv " + outdir)
+            print (e)
+            print ("END ERROR \n\n")
+            pass
+
+
+    def export_csv_articles(self, outdir):
         try:
             self.prep_dir(outdir)
             with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
