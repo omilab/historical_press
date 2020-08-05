@@ -27,16 +27,17 @@ It should be noted that the parts are not interdependent. Although they are part
 
 ### stage 1 - Legacy format to Transkribus format converter
 This script allows the user to convert directories from the legacy format into the PAGE.XML files that can be uploaded later into Transkribus or used in another way.
-INPUT DIRECTORY STRUCTURE:
+
+#####INPUT DIRECTORY STRUCTURE:
 For proper system operation, make sure your input folder is a Newspaper folder with the following structure:
   * TOC.xml file
   * a document folder that includes:
   *  PDF of the newspaper issue
   *  A Folder for every  page in the issue that includes:
-  *   - PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
-  *   - ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
-  *   - AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
-  *   - Img folder that includes images of all the objects in the page together and alone.
+     - PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
+     - ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
+     - AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
+     - Img folder that includes images of all the objects in the page together and alone.
 
 
 For a demo, you may use the directory "resources_for_tests" which is included in the repo. 
@@ -56,6 +57,7 @@ With this part of the script you will upload the converted data from your direct
 * your transkribus username
 * your transkribus password
 * source path (use the same path you used for the first stage to work on the results of the conversion from legacy files)
+* confirm (by pressing enter) or skip (by entering something else) performing line detection 
 * the id of the collection in Transkribus where you would like to store the newspaper issues.
 * the id of the HTR model
 
@@ -69,12 +71,15 @@ At this stage you should have in your source directory a sub-directory with tran
 * Run "tkbs_exporter.py" and give as the source path the same directory as in previous stages. 
 * you will be prompted to confirm (by pressing enter) or skip (by entering "NO") the conversion to each of the formats. 
     
-OUTPUT FORMATS:
+#####OUTPUT FORMATS:
 The output of s
 
 ## Roadmap
-1.Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. Further development will add a conversion of this information directly into the page.xml as custom attribute values of text regions.
-2.In order to avail the output to external viewers the PAGE.XML will have to be converted to the viewer's input formats (e.g., METZ @ ALTO#)
+Future projects may further develop this pipeline:
+* see "Issues", and especially issue 7: running parrallel processes.
+* adding a conversion of corrected "Ground truth" data from Transkribus (in the output format of stage 2) to input formats for open source softare that enables training OCR models.
+* Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. Adding a conversion of this information directly into the page.xml as custom attribute values of text regions will enable training e.g. region or article detection.
+* In order to avail the output to external viewers the PAGE.XML will have to be converted to the viewer's input formats (e.g., METZ @ ALTO#)
 
 ## Authors
 This project was initiated at [OMILab](https://www.openu.ac.il/en/omilab) and the pipeline was created by Nurit Greidinger, Yanir Marmor and Sinai Rusinek.
