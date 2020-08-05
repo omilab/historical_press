@@ -23,6 +23,7 @@ class Config:
             self.htr_model_id = conf_json["htr_model_id"]
             #self.dst_path = conf_json["dst_path"]
             self.line_detection = conf_json["line_detection"]
+            self.user_garbage_line_width = conf_json["garbage_line_width"]
         elif config_parameters is None:
             self.username = set_username()
             self.password = set_password()
@@ -30,9 +31,12 @@ class Config:
             self.collection_id = set_collection_id()
             self.line_detection = set_line_detection_id()
             self.htr_model_id = set_htr_model_id()
+            self.user_garbage_line_width = get_garbage_lines_width()
+
             #self.dst_path = set_source_path()
         else:
-            self.username, self.password, self.src_path, self.collection_id, self.line_detection, self.htr_model_id = config_parameters
+            self.username, self.password, self.src_path, self.collection_id, \
+            self.line_detection, self.htr_model_id, self.user_garbage_line_width = config_parameters
 
         # print(self.username, self.password, self.src_path, self.collection_id, self.htr_model_id, self.dst_path)
 
@@ -92,6 +96,23 @@ def set_line_detection_id():
 def set_htr_model_id():
     htr_model_id = input("Enter your HTR model id (or press Enter if you don't want text recognition): ")
     return str(htr_model_id)
+
+
+def get_garbage_lines_width():
+    width = Document.legacy_garbage_width
+    user_input = input("Garbage line default width is " + str(width) +\
+                       " points.\nEnter a different width, zero to disable (or press Enter for default width): ")
+    try:
+        newwidth = int(user_input)
+        if newwidth <= 0:
+            print("Garbage line cleanup disabled\n")
+        else:
+            print("Garbage line width will be set to " + str(newwidth) + " points.\n")
+        return newwidth
+    except:
+        print("Using default value\n")
+        return width
+
 
 
 def connect_to_tkbs(config):
@@ -175,20 +196,6 @@ def upload(collection, input_folder, pageImages, pageXmls, title, author, descri
                 print ("END ERROR \n\n")
                 pass
 
-
-
-def line_detection(collection_id, document_id, tkbs_client, config=None):
-    try:
-        doc_parts = '{"docList" : {"docs" : [ {"docId" : ' + str(document_id) + '}]}}'
-        response = tkbs_client.analyzeLayout(colId=collection_id, docPagesJson=doc_parts, bBlockSeg=False,
-                                             bLineSeg=True)
-        tree = ElementTree.fromstring(response)
-        status = tree.find('trpJobStatus')
-        job_id = status.find('jobId').text
-        seconds = 120
-        return wait_for_job_status(job_id, seconds, tkbs_client, 5)
-    except Exception as e:
-        print("Error: %s." % e)
 
 def run_ocr(collection, HTRmodelid, dictionaryName, mydocid, pids, mytkbs):
     try:
@@ -349,22 +356,32 @@ def line_detect(collection, mydocid, pageids, mytkbs):
                 print ("END ERROR \n\n")
                 pass
 
-def edit_pg_baseline(pgfile, addpoints):
+   
+def delete_garbage_text(pgfile, garbage_line_width):
     ET.register_namespace('', "http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15")
     tree = ET.ElementTree(file=pgfile)
     xml_changed = False
-    for myelement in tree.iterfind('*/*/*/*'):
-        if myelement.tag.endswith("Baseline"):
-            xml_changed = True
-            points = myelement.attrib.get('points')
-            points_list = points.split(" ")
-            startpoint = str(int(points_list[0].split(",")[0]) - addpoints) + "," + points_list[0].split(",")[1]
-            endpoint = str(int(points_list[(len(points_list) - 1)].split(",")[0]) + addpoints) + "," + points_list[(len(points_list) - 1)].split(",")[1]
-            new_points = startpoint + " " + points + " " + endpoint
-            myelement.set('points', new_points)
+    for myelement in tree.iterfind('*/*/*'):
+        if myelement.tag.endswith("TextLine"):
+            line_changed = False
+            textchild = None
+            for mychild in myelement.getiterator():
+                if mychild.tag.endswith("TextEquiv"):
+                    textchild = mychild
+                if mychild.tag.endswith("Baseline"):
+                    points = mychild.attrib.get('points')
+                    points_list = points.split(" ")
+                    smallpoint = int(points_list[0].split(",")[0])
+                    bigpoint = int(points_list[(len(points_list) - 1)].split(",")[0])
+                    linewidth = bigpoint - smallpoint
+                    if linewidth <= garbage_line_width:
+                        xml_changed = True
+                        line_changed = True
+            if line_changed and textchild != None:
+                for tnode in textchild.getiterator():
+                    tnode.text = ""
     if (xml_changed):
         tree.write(pgfile)
-        #print("BASELINE CHANGED: " + pgfile)
         return True
     else:
         return False
@@ -374,7 +391,7 @@ def upload_pipeline(config):
     folders_to_be_uploaded = find_sub_folders_with_toc_file(config.src_path)
     workfolder = os.path.join(config.src_path, "tkbs_work")
     prep_dir(workfolder)
-    outfolder = os.path.join(config.src_path, "tkbs_output")
+    outfolder = os.path.join(config.src_path, "transkribus_output")
     prep_dir(outfolder)
     legacy_output = os.path.join(config.src_path, "legacy_output")
     collec = config.collection_id
@@ -397,9 +414,6 @@ def upload_pipeline(config):
             p = Document()
             p.load_legacy_data(infolder)
             uniquename = p.doc_title + "_" + start
-            exportfolder = os.path.join(outfolder, "tkbs_" + uniquename)
-            prep_dir(exportfolder)
-            
             firstexportdir = sfolder.replace(config.src_path, legacy_output)
             if not os.path.isdir(firstexportdir):
                 print("Skipping... TKBS output missing under " + firstexportdir)
@@ -427,52 +441,31 @@ def upload_pipeline(config):
                 print ("ERROR - document failed line detection " + p.title)
                 continue 
             
-            v and print("---   DOWNLOADING-2 doc for baseline extention      ---")
-            extentiondowndir = os.path.join(workfolder, "extentiondowndir")
-            prep_dir(extentiondowndir)
-            xtarget_dir = os.path.join(extentiondowndir, uniquename + "_" + str(collec) + "_" + str(docid))
-            xdocjson = download(collec, str(docid), xtarget_dir, tkbs, p.tkbs_meta_filename)
-            xpageids = p.load_tkbs_page_ids(xdocjson)
-            
-            v and print("---   BASELINE EXTENTION         ---")
-            for num, fname in p.pxml_names_by_pgnum().items():
-                fullname = os.path.join(xtarget_dir, fname)
-                edit_pg_baseline(fullname, 10)
-            
-            v and print("---   UPLOAD extended baseline data to server          ---")
-            xdocid = upload(collec, xtarget_dir, p.img_names_by_pgnum(), p.pxml_names_by_pgnum(), p.title, user, "pipeline test baseline extended", tkbs)
-            if xdocid <= 0:
-                print ("ERROR - document failed to upload after baseline extention" + p.title)
-                continue #sys.exit(1)
-            
-            v and print("---   DOWNLOADING-3 doc for ocr page ids      ---")
-            preocr = os.path.join(workfolder, "preocr")
-            prep_dir(preocr)
-            preocr_dir = os.path.join(preocr, uniquename + "_" + str(collec) + "_" + str(xdocid))
-            pdocjson = download(collec, str(xdocid), preocr_dir, tkbs, p.tkbs_meta_filename)
-            ppageids = p.load_tkbs_page_ids(pdocjson)
             
             if len(HTRmodelid) < 2:
                 v and print("Skipping from Htr and on...")
                 continue
                 
             v and print("---   RUNNING OCR          ---")
-            ocr_status = run_ocr(collec, HTRmodelid, "", str(xdocid), ppageids, tkbs)
+            ocr_status = run_ocr(collec, HTRmodelid, "", str(docid), pageids, tkbs)
             if not ocr_status:
                 print ("ERROR - document failed ocr " + p.title)
-                continue #sys.exit(1)
+                continue 
             
             v and print("---   FINAL DOWNLOAD after OCR for TEI export        ---")
-            ocrdowndir = os.path.join(exportfolder, "transkribus")
-            prep_dir(ocrdowndir)
-            otarget_dir = os.path.join(ocrdowndir, uniquename + "_" + str(collec) + "_" + str(xdocid))
-            ocrdocjson = download(collec, str(xdocid), otarget_dir, tkbs, p.tkbs_meta_filename)
+            otarget_dir = os.path.join(outfolder, uniquename + "_" + str(collec) + "_" + str(docid))
+            ocrdocjson = download(collec, str(docid), otarget_dir, tkbs, p.tkbs_meta_filename)
             pageids = p.load_tkbs_page_ids(ocrdocjson)
             
-    
+            if config.user_garbage_line_width > 0:
+                v and print("---   DELETING GARBAGE TEXT         ---")
+                for num, fname in p.pxml_names_by_pgnum().items():
+                    fullname = os.path.join(otarget_dir, fname)
+                    delete_garbage_text(fullname, config.user_garbage_line_width)
+
             
         except Exception as e:
-            print("ERROR in PipelineRunner main loop ")
+            print("ERROR in upload_pipeline main loop ")
             print (e)
             print ("END ERROR \n\n")
             pass
@@ -480,26 +473,6 @@ def upload_pipeline(config):
 
     print("DONE. Output is under " + outfolder)
     tkbs.auth_logout()
-
-
-def wait_for_job_status(job_id, wait_time_in_seconds, tkbs_client, attempts=2):
-    try:
-        attempts_counter = 0
-        while attempts_counter < attempts:
-            curr_wait_time_in_seconds = wait_time_in_seconds * (1.5 ** attempts_counter)  # sleeping time increase
-            attempts_counter += 1
-            if wait_time_in_seconds > 0:
-                print("waiting " + str(curr_wait_time_in_seconds) + ", while checking job_id " + str(job_id))
-                time.sleep(curr_wait_time_in_seconds)
-                # tkbs_client = connect_to_tkbs(config) TODO: re-connection after sleeping time
-            response = tkbs_client.getJobStatus(str(job_id))
-            if response['state'] == 'FINISHED':
-                return response['success']
-            else:
-                if attempts_counter == attempts:
-                    return False
-    except Exception as e:
-        print("Error: %s." % e)
 
 
 def main():
