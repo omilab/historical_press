@@ -21,38 +21,38 @@ The pipeline consists of three subsequent but independent stages:
 Around September 2020 Transkribus  will be available as payed service, in the framework of the READ Coop:  https://read.transkribus.eu/coop/. 
 
 
-### Directoy structure
-For proper system operation, make sure the folder structure is as described below:
-A Newspaper folder that includes:
-  * TOC.xml file
-  * a document folder that includes:
-  *  PDF of the newspaper issue
-  *  A Folder for every newspaper page that includes:
-  *  PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
-  *  ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
-  *  AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
-  *  Img folder that includes images of all the objects in the page together and alone.
 
 ## Tutorial
 It should be noted that the parts are not interdependent. Although they are part of one pipeline, only the relevant stages can be used without any particular problem.
 
-### Part 1 - Legacy format to Transkribus format converter
+### stage 1 - Legacy format to Transkribus format converter
 This script allows the user to convert directories from the legacy format into the PAGE.XML files that can be uploaded later into Transkribus or used in another way.
+INPUT DIRECTORY STRUCTURE:
+For proper system operation, make sure your input folder is a Newspaper folder with the following structure:
+  * TOC.xml file
+  * a document folder that includes:
+  *  PDF of the newspaper issue
+  *  A Folder for every  page in the issue that includes:
+  *   - PgXXX.xml (where XXX is the page number; this file include a strcuctural inforamtion about this page)
+  *   - ArYYY.xml for every article in this page (where YYY is the article number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this article)
+  *   - AdYYY.xml for every advertisement in this page (where YYY is the advertisement number like that appears in the PgXXX.xml file; this file include a strcuctural inforamtion about this advertisement)
+  *   - Img folder that includes images of all the objects in the page together and alone.
 
-For the demo, we will use the directory "resources_for_tests" which included in the repo. 
+
+For a demo, you may use the directory "resources_for_tests" which is included in the repo. 
 You will see that the directory structure is like the description above.
 
 Execute the script "legacy_to_tkbs_format_converter.py" via command line (or any other way you choose). Now, you'll be asked to insert the path of the  directory that you want to convert. You can choose a parent folder, and all the sub-folders will be converted.
 ![insert path please](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial1.JPG)
 
-In our case we will take "resources_for_tests":
+For demo, use "resources_for_tests":
 ![resources_for_tests](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial2.JPG)
 
-After the script will be executed (this should take less than one second per folder; depending on size, of course). A successful response would contain an update on the number of successfully converted folders and where to find them now.
+Once the script is executed (this should take less than one second per folder; depending on size, of course). A successful response would contain an update on the number of successfully converted folders inside your directory and where to find them.
 ![successful response](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial3.JPG)
 
 ### Part 2 - Work with Transkribus' API
-With this part of the script you will upload your data to the Transkribus server, run layout analysis and your chosen HTR model. When running the script "tkbs_uploader.py" you will be prompted to insert:
+With this part of the script you will upload the converted data from your directory to the Transkribus server, run layout analysis and your chosen HTR model. When running the script "tkbs_uploader.py" you will be prompted to insert:
 * your transkribus username
 * your transkribus password
 * source path (use the same path you used for the first stage to work on the results of the conversion from legacy files)
@@ -64,11 +64,14 @@ For convenience sake you can skip these stages by saving a file titled conf.json
 <img src="https://github.com/omilab/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/conf.JPG" width="300" height="250" />
 
 ### Part 3 - convert Transkribus' output to research input formats
-At this stage you will have in your source directory a sub-directory with transkribus output, which may be converted in stage 3 to three formats: plain text, CSV, and/or TEI.XML. 
+At this stage you should have in your source directory a sub-directory with transkribus output, which may be converted in stage 3 to three formats: plain text, CSV, and/or TEI.XML. 
 
 * Run "tkbs_exporter.py" and give as the source path the same directory as in previous stages. 
 * you will be prompted to confirm (by pressing enter) or skip (by entering "NO") the conversion to each of the formats. 
     
+OUTPUT FORMATS:
+The output of s
+
 ## Roadmap
 1.Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. Further development will add a conversion of this information directly into the page.xml as custom attribute values of text regions.
 2.In order to avail the output to external viewers the PAGE.XML will have to be converted to the viewer's input formats (e.g., METZ @ ALTO#)
