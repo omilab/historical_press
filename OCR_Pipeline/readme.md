@@ -48,8 +48,8 @@ Execute the script "legacy_to_tkbs_format_converter.py" via command line (or any
 In our case we will take "resources_for_tests":
 ![resources_for_tests](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial2.JPG)
 
-After the script will be executed (it supposed to be very quickly - less than one second per folder; depending on size, of course). You should get succesful response that containing an update on the number of successfully converted folders and where to find them now.
-![succesful response](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial3.JPG)
+After the script will be executed (this should take less than one second per folder; depending on size, of course). A successful response would contain an update on the number of successfully converted folders and where to find them now.
+![successful response](https://github.com/yanirmr/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/tutorial3.JPG)
 
 ### Part 2 - Work with Transkribus' API
 With this part of the script you will upload your data to the Transkribus server, run layout analysis and your chosen HTR model. When running the script "tkbs_uploader.py" you will be prompted to insert:
