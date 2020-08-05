@@ -58,7 +58,8 @@ With this part of the script you will upload your data to the Transkribus server
 * source path (use the same path you used for the first stage to work on the results of the conversion from legacy files)
 * the id of the collection in Transkribus where you would like to store the newspaper issues.
 * the id of the HTR model
-For convenience sake you can skip these stages by saving a file titled conf.json in the OCR_Pipeline folder, which includes this information:
+
+####For convenience sake you can skip these stages by saving a file titled conf.json in the OCR_Pipeline folder, which includes this information:
 
 <img src="https://github.com/omilab/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/conf.JPG" width="300" height="250" />
 
