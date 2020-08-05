@@ -99,7 +99,7 @@ def set_htr_model_id():
 
 
 def get_garbage_lines_width():
-    width = Document.legacy_garbage_width
+    width = 13 #Document.legacy_garbage_width
     user_input = input("Garbage line default width is " + str(width) +\
                        " points.\nEnter a different width, zero to disable (or press Enter for default width): ")
     try:
