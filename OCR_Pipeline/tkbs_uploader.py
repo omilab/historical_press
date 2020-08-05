@@ -89,8 +89,8 @@ def set_collection_id():
 
 
 def set_line_detection_id():
-    line_detection_id = input("Enter something if you want line detection (or press Enter if you don't want): ")
-    return "YES" if line_detection_id != "" else ""
+    line_detection_id = input("Enter something to only upload and skip line detection and on (or press Enter for default line detection): ")
+    return "" if line_detection_id != "" else "YES"
 
 
 def set_htr_model_id():
