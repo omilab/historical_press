@@ -63,6 +63,11 @@ For convenience sake you can skip these stages by saving a file titled conf.json
 
 <img src="https://github.com/omilab/historical_press/blob/master/OCR_Pipeline/images_for_tutorial/conf.JPG" width="300" height="250" />
 
+### Part 3 - convert Transkribus' output to research input formats
+At this stage you will have in your source directory a sub-directory with transkribus output, which may be converted in stage 3 to three formats: plain text, CSV, and/or TEI.XML. 
+
+* Run "tkbs_exporter.py" and give as the source path the same directory as in previous stages. 
+* you will be prompted to confirm (by pressing enter) or skip (by entering "NO") the conversion to each of the formats. 
     
 ## Roadmap
 1.Currently, part 1 of the pipeline converts the text regions from the legacy files into the PAGE.XML files, and uses other structural information - the order and structure types (Advertisements, Heads) - for the post processing. Further development will add a conversion of this information directly into the page.xml as custom attribute values of text regions.
