@@ -117,7 +117,7 @@ class Document:
 
     def load_legacy_data(self, inputdir):
         try:
-            #---- READING TOC FILE --------------------#
+            #---- READING TOC FILE ---------------------#
             self.legacydir = inputdir
             self.input_pub_file_name = os.path.join(self.legacydir, self.legacy_metafile)
             self.pick_resolution(self.input_pub_file_name)
@@ -556,7 +556,7 @@ class Document:
             print ("END ERROR \n\n")
             pass
 
-    def export_csv(self, outdir):
+    def export_csv_articles(self, outdir):
         try:
             self.prep_dir(outdir)
             with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
@@ -570,7 +570,7 @@ class Document:
                     header = self.articles[a].header
                     for r in self.articles[a].article_regions.keys():
                         for l in self.articles[a].article_regions[r].lines.keys():
-                            articletext = " ".join(articletext, self.articles[a].article_regions[r].lines[l].text)
+                            articletext = " ".join([articletext, self.articles[a].article_regions[r].lines[l].text])
                     writer.writerow({'article_id': str(aid), 'headline': header, 'text': articletext})
         except Exception as e:
             print("ERROR in export_csv " + outdir)
