@@ -19,7 +19,6 @@ def get_path_from_user():
         print("Illegal path, try again")
         return ""
 
-
 def find_sub_folders_with_toc_file(dir_path):  # Get absolute path
     sub_folders_with_TOC_file = []
     for subdir, dirs, files in os.walk(dir_path):
@@ -59,6 +58,7 @@ def main():
     path = get_path_from_user()  # Path should be include TOC.xml file(s) anywhere.
     while path == "":
         path = get_path_from_user()
+        
     output_dir = create_unique_output_folder(path)
 
     folders_to_be_converted = find_sub_folders_with_toc_file(path)
