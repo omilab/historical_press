@@ -386,7 +386,7 @@ def delete_garbage_text(pgfile, garbage_line_width):
     else:
         return False
 
-v = False
+v = True
 def upload_pipeline(config):
     folders_to_be_uploaded = find_sub_folders_with_toc_file(config.src_path)
     workfolder = os.path.join(config.src_path, "tkbs_work")
