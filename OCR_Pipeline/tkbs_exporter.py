@@ -123,7 +123,8 @@ def export_pipeline(config):
     tkbs_topfolder = os.path.join(config.src_path, "transkribus_output")
     exportfolder = prep_dir(os.path.join(config.src_path, "transkribus_export"))
     if config.export_csv:
-        csvfolder = prep_dir(os.path.join(exportfolder, 'csv'))
+        csvfolder_byregion = prep_dir(os.path.join(exportfolder, 'csv_by_region'))
+        csvfolder_byarticle = prep_dir(os.path.join(exportfolder, 'csv_by_article'))
     if config.export_plaintext:
         plaintextfolder = prep_dir(os.path.join(exportfolder, 'plaintext'))
     if config.export_tei:
@@ -156,7 +157,8 @@ def export_pipeline(config):
             
             if config.export_csv:
                 v and print("---   CSV export           ---")
-                p.export_csv(csvfolder)
+                p.export_csv_articles(csvfolder_byarticle)
+                p.export_csv_regions(csvfolder_byregion)
     
             
         except Exception as e:
