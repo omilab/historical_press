@@ -561,7 +561,7 @@ class Document:
             self.prep_dir(outdir)
             with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
             #with open(os.path.join(outdir, self.title + ".csv"), mode = 'wb') as o:
-                fieldnames = ['article_id', 'headline', 'region_id', 'page_id', 'line_id', 'text']
+                fieldnames = ['article_id', 'headline', 'text']
                 writer = csv.DictWriter(o, fieldnames=fieldnames)
                 writer.writeheader()
                 for a in self.articles.keys():
