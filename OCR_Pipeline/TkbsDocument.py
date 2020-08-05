@@ -83,7 +83,13 @@ class Document:
             print ("END ERROR \n\n")
             return False
             pass
-
+    
+    def set_garbage_line_width(self, new_line_width):
+        try:
+            self.legacy_garbage_width = int(new_line_width)
+        except:
+            return
+        
     #read Arxxx.xml file
     def get_legacy_entity_data(self, input_file_name):
         try:
@@ -525,7 +531,7 @@ class Document:
                             print("*ERROR* TOC ENTRY ID " + eentry + " MISSING in " + metafile)
 
 
-    def export_csv(self, outdir):
+    def export_csv_by_line(self, outdir):
         try:
             self.prep_dir(outdir)
             with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
@@ -544,6 +550,28 @@ class Document:
                             lid = lids[len(lids)-1]
                             writer.writerow({'article_id': str(aid), 'headline': header, 'region_id': str(rid), 'page_id': str(pid), 'line_id': str(lid), 'text': self.articles[a].article_regions[r].lines[l].text})
                             #o.write("%s,%s,%s,%s,%s\n" %(aid, rid, pid, lid, f'{self.articles[a].article_regions[r].lines[l].text}'))
+        except Exception as e:
+            print("ERROR in export_csv " + outdir)
+            print (e)
+            print ("END ERROR \n\n")
+            pass
+
+    def export_csv(self, outdir):
+        try:
+            self.prep_dir(outdir)
+            with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
+            #with open(os.path.join(outdir, self.title + ".csv"), mode = 'wb') as o:
+                fieldnames = ['article_id', 'headline', 'region_id', 'page_id', 'line_id', 'text']
+                writer = csv.DictWriter(o, fieldnames=fieldnames)
+                writer.writeheader()
+                for a in self.articles.keys():
+                    articletext = ""
+                    aid = self.articles[a].id
+                    header = self.articles[a].header
+                    for r in self.articles[a].article_regions.keys():
+                        for l in self.articles[a].article_regions[r].lines.keys():
+                            articletext = " ".join(articletext, self.articles[a].article_regions[r].lines[l].text)
+                    writer.writerow({'article_id': str(aid), 'headline': header, 'text': articletext})
         except Exception as e:
             print("ERROR in export_csv " + outdir)
             print (e)
