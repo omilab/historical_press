@@ -556,7 +556,7 @@ class Document:
             print ("END ERROR \n\n")
             pass
 
-    def export_csv_articles(self, outdir):
+    def export_csv(self, outdir):
         try:
             self.prep_dir(outdir)
             with open(os.path.join(outdir, self.title + ".csv"), mode = 'w', encoding = self.xmlcode, newline='') as o:
