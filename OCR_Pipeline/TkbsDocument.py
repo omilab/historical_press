@@ -10,6 +10,7 @@ from lxml import etree
 from shutil import copyfile
 import os, sys, json, csv, mmap
 import xml.etree.ElementTree as ET
+import zipfile
 
 
 class Document:
@@ -114,7 +115,18 @@ class Document:
             print (e)
             print ("END ERROR \n\n")
             pass
-
+    
+    def check_unzip(self, input_folder):
+        input_zip = input_folder + ".zip"
+        if not os.path.isdir(input_folder) and os.path.isfile(input_zip):
+            os.makedirs(input_folder)
+            os.chdir(os.path.dirname(input_zip))
+            fh = open(input_zip, 'rb')
+            z = zipfile.ZipFile(fh)
+            for name in z.namelist():
+                z.extract(name, input_folder)
+            fh.close()
+    
     def load_legacy_data(self, inputdir):
         try:
             #---- READING TOC FILE ---------------------#
@@ -129,10 +141,11 @@ class Document:
             self.doc_id = release_parts[2] + release_parts[3] + release_parts[4]
             self.doc_title = release_parts[1] + "-"+ release_parts[2] +"-"+ release_parts[3] +"-"+ release_parts[4]
             self.page_count = len(tree.xpath('//Page'))
+            self.check_unzip(os.path.join(inputdir, self.docdir))
             for pgElement in tree.xpath('//Page'):
                 pgNum = pgElement.get("PAGE_NO")
                 pgImage = pgElement.get("ID") + self.resolution_filename_part + ".png"
-                pxmlOutname = pgElement.get("ID") + self.resolution_filename_part + ".xml"
+                pxmlOutname = pgElement.get("ID") + self.resolution_filename_part + ".pxml"
                 pgXml = pgElement.get("ID") + ".xml"
                 self.PagesImgName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, self.inputdir_images, pgImage)
                 self.PagesXmlName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, pgXml)
@@ -458,7 +471,7 @@ class Document:
                 self.toolName = data["pageList"]["pages"][0]["tsList"]["transcripts"][0]["toolName"]
                 for p in data["pageList"]["pages"]:
                     pnumber = p["pageNr"]
-                    pxml = os.path.join(self.tkbs_load_dir, p["imgFileName"].replace(".png", ".xml"))
+                    pxml = os.path.join(self.tkbs_load_dir, p["imgFileName"].replace(".png", ".pxml"))
                     if os.path.isfile(pxml):
                         self.pages[pnumber] = tkbs_page(pxml, pnumber, self.tkbs_xml_schema)
 
@@ -684,42 +697,50 @@ class Document:
 class tkbs_page:
 
     def __init__(self, pgxml, number, schema):
-        if os.path.isfile(pgxml):
-            self.pagenumber = number
-            self.sourcefile = pgxml
-            tree = ET.parse(pgxml)
-            xroot = tree.getroot()
-            for p in xroot.findall('{' + schema + '}Page'):
-                self.imageFilename = p.attrib["imageFilename"]
-                self.imageWidth = p.attrib["imageWidth"]
-                self.imageHeight = p.attrib["imageHeight"]
-                self.regions = {}
-                ro = p.find('{' + schema + '}ReadingOrder')
-                og = ro.find('{' + schema + '}OrderedGroup')
-                for rr in og.findall('{' + schema + '}RegionRefIndexed'):
-                    i = rr.attrib["index"]
-                    r = rr.attrib["regionRef"]
-                    self.regions[r] = tkbs_region(r, i, number)
-                for tr in p.findall('{' + schema + '}TextRegion'):
-                    i = tr.attrib["id"]
-                    coo = tr.find('{' + schema + '}Coords')
-                    self.regions[i].coordinates = coo.attrib["points"]
-                    tx = tr.find('{' + schema + '}TextEquiv')
-                    ucode = tx.find('{' + schema + '}Unicode')
-                    if str(ucode.text).upper() != "NONE":
-                        self.regions[i].text = ucode.text
-                    for l in tr.findall('{' + schema + '}TextLine'):
-                        lcoo = l.find('{' + schema + '}Coords')
-                        #print(lcoo)
-                        lid = l.attrib["id"]
-                        ltx = l.find('{' + schema + '}TextEquiv')
-                        lucode = ltx.find('{' + schema + '}Unicode')
-                        lindex = l.attrib["custom"].split(":")[1].split(";")[0]
-                        ltext = ""
-                        if str(lucode.text).upper() != "NONE":
-                            ltext = lucode.text
-                        self.regions[i].lines[lid] = tkbs_line(lid, lindex, lcoo, ltext)
-
+        try:
+            
+            if os.path.isfile(pgxml):
+                self.pagenumber = number
+                self.sourcefile = pgxml
+                tree = ET.parse(pgxml)
+                xroot = tree.getroot()
+                for p in xroot.findall('{' + schema + '}Page'):
+                    self.imageFilename = p.attrib["imageFilename"]
+                    self.imageWidth = p.attrib["imageWidth"]
+                    self.imageHeight = p.attrib["imageHeight"]
+                    self.regions = {}
+                    ro = p.find('{' + schema + '}ReadingOrder')
+                    og = ro.find('{' + schema + '}OrderedGroup')
+                    for rr in og.findall('{' + schema + '}RegionRefIndexed'):
+                        i = rr.attrib["index"]
+                        r = rr.attrib["regionRef"]
+                        self.regions[r] = tkbs_region(r, i, number)
+                    for tr in p.findall('{' + schema + '}TextRegion'):
+                        i = tr.attrib["id"]
+                        coo = tr.find('{' + schema + '}Coords')
+                        self.regions[i].coordinates = coo.attrib["points"]
+                        tx = tr.find('{' + schema + '}TextEquiv')
+                        ucode = tx.find('{' + schema + '}Unicode')
+                        if str(ucode.text).upper() != "NONE":
+                            self.regions[i].text = ucode.text
+                        for l in tr.findall('{' + schema + '}TextLine'):
+                            lcoo = l.find('{' + schema + '}Coords')
+                            lid = l.attrib["id"]
+                            ltx = l.find('{' + schema + '}TextEquiv')
+                            lucode = ltx.find('{' + schema + '}Unicode')
+                            lindex = l.attrib["custom"].split(":")[1].split(";")[0]
+                            ltext = ""
+                            if str(lucode.text).upper() != "NONE":
+                                ltext = lucode.text
+                            self.regions[i].lines[lid] = tkbs_line(lid, lindex, lcoo, ltext)
+        except Exception as e: 
+            print("ERROR in tkbs_page " + pgxml + " with schema " + schema)
+            print (e)
+            print ("END ERROR \n\n")
+            raise e
+    
+            
+            
 class tkbs_line:
 
     def __init__(self, id, order, coords, text):
