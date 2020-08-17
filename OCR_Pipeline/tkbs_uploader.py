@@ -13,6 +13,7 @@ from TkbsDocument import Document
 
 class Config:
     def __init__(self, config_parameters=None):
+        self.default_garbage_line_width = 13
         if os.path.isfile('conf.json'):
             with open('conf.json') as json_file:
                 conf_json = json.load(json_file)
@@ -20,10 +21,11 @@ class Config:
             self.password = conf_json["password"]
             self.src_path = conf_json["src_path"]
             self.collection_id = conf_json["collection_id"]
+            self.line_detection = conf_json["line_detection"]            
             self.htr_model_id = conf_json["htr_model_id"]
-            #self.dst_path = conf_json["dst_path"]
-            self.line_detection = conf_json["line_detection"]
+            self.htr_lang_model = conf_json["htr_language_model"]
             self.user_garbage_line_width = conf_json["garbage_line_width"]
+            
         elif config_parameters is None:
             self.username = set_username()
             self.password = set_password()
@@ -31,15 +33,12 @@ class Config:
             self.collection_id = set_collection_id()
             self.line_detection = set_line_detection_id()
             self.htr_model_id = set_htr_model_id()
-            self.user_garbage_line_width = get_garbage_lines_width()
-
-            #self.dst_path = set_source_path()
+            self.htr_lang_model = set_htr_language_model()
+            self.user_garbage_line_width = get_garbage_lines_width(self.default_garbage_line_width)
         else:
             self.username, self.password, self.src_path, self.collection_id, \
-            self.line_detection, self.htr_model_id, self.user_garbage_line_width = config_parameters
-
-        # print(self.username, self.password, self.src_path, self.collection_id, self.htr_model_id, self.dst_path)
-
+            self.line_detection, self.htr_model_id, self.htr_lang_model, \
+            self.user_garbage_line_width = config_parameters
 
 def set_username():
     username = input("Enter your Transkribus username: ")
@@ -89,8 +88,8 @@ def set_collection_id():
 
 
 def set_line_detection_id():
-    line_detection_id = input("Enter something to only upload and skip line detection and on (or press Enter for default line detection): ")
-    return "" if line_detection_id != "" else "YES"
+    line_detection_id = input("Press Enter for default line detection, or something else to only upload, skipping line detection and the following stages: ")
+    return "Skip" if line_detection_id.strip() != "" else ""
 
 
 def set_htr_model_id():
@@ -98,10 +97,9 @@ def set_htr_model_id():
     return str(htr_model_id)
 
 
-def get_garbage_lines_width():
-    width = 13 #Document.legacy_garbage_width
+def get_garbage_lines_width(width):
     user_input = input("Garbage line default width is " + str(width) +\
-                       " points.\nEnter a different width, zero to disable (or press Enter for default width): ")
+                       " points.\npress Enter for default width, or type a different width, zero to disable garbage cleanup: ")
     try:
         newwidth = int(user_input)
         if newwidth <= 0:
@@ -113,18 +111,16 @@ def get_garbage_lines_width():
         print("Using default value\n")
         return width
 
-
-
-def connect_to_tkbs(config):
+def set_htr_language_model():
+    user_input = input("Enter 'YES' to activate the HTR integrated language model")
     try:
-        disable_warnings(InsecureRequestWarning)
-        tkbs_client = TranskribusClient(sServerUrl="https://transkribus.eu/TrpServer")
-        connection = tkbs_client.auth_login(config.username, config.password, True)
-        return tkbs_client
-
-    except Exception as e:
-        print("Error: %s." % e)
-
+        if user_input.upper() == 'YES':
+            return True
+        else: 
+            return False
+    except:
+        return False
+        
 
 def extract_json_for_tkbs_from_toc_file(toc_folder_path="resources_for_tests\\1914-11-06",
                                         images_and_xmls_folder_path="resources_for_tests\\output\\1914-11-06",
@@ -185,7 +181,6 @@ def upload(collection, input_folder, pageImages, pageXmls, title, author, descri
             if pageUploaded.text == "true":
                 count +=  1
         if count == int(total) and wait_for_jobstatus(jobid, 30, mytkbs):
-            #print(total + " file uploads finished successfuly")
             return int(docid)
         else:
             print("ERROR - " + str(count) + " files of " + total + " completed.")
@@ -218,22 +213,46 @@ def run_ocr(collection, HTRmodelid, dictionaryName, mydocid, pids, mytkbs):
                 print ("END ERROR \n\n")
                 pass
 
+def run_ocr_with_options(collection, HTRmodelid, dictionaryName, mydocid, pids, mytkbs):
+    try:
+        total = len(pids)
+        jstring = '{"docId" : ' + str(mydocid) + ', "pageList" : {"pages" : ['
+        psik = ', '
+        count = 0
+        for pnum, pid in pids.items():
+            count += 1
+            if count == total:
+                psik = ''
+            jstring = jstring + '{"pageId" : ' + str(pid) + '}' + psik
+        jstring = jstring + ']}}'
+        jobid = mytkbs.htrRnnDecode(collection, HTRmodelid, dictionaryName, mydocid, jstring, bDictTemp=False)
+        seconds = 80 * len(pids)
+        return wait_for_jobstatus(jobid, seconds, mytkbs, count=5)
+    except Exception as e:
+                print("ERROR in run_ocr for docid " + str(mydocid))
+                print (e)
+                print ("END ERROR \n\n")
+                pass
 
-
+def get_doc(collection, mydocid, mytkbs):
+    try:
+        return mytkbs.getDocById(collection, mydocid)
+    except Exception as e:
+                print("ERROR in get_doc for docid " + str(mydocid))
+                print (e)
+                print ("END ERROR \n\n")
+                pass
+    
 
 def download(collection, documentid, folder, mytkbs, metafilename):
     try:
         response = mytkbs.download_document(collection, documentid, folder)
-        #print(response)
         pages = len(response[1])
         if pages > 0:
-            #print(str(pages) + " pages of doc download completed.")
             with open(os.path.join(folder, metafilename)) as j:  
                 data = json.load(j)
-                #print(data)
                 return data
         else:
-            #print("no pages downloaded.")
             return None
     except Exception as e:
                 print("ERROR in download ")
@@ -253,7 +272,6 @@ def delete_directory(folder_path):
 def read_tkbs_json_file(trp_json_path):
     with open(trp_json_path) as f:
         data = json.load(f)
-        # print(data)
         return data
 
 
@@ -314,7 +332,6 @@ def prep_dir(out_dir):
 
 def wait_for_jobstatus(job, waitseconds, mytkbs, count=1):
     try:
-        #print("waiting " + str(waitseconds) + ", checking jobid " + str(job))
         c = 0
         while c < count:
             c += 1
@@ -409,14 +426,14 @@ def upload_pipeline(config):
             infolder = sfolder
             
             start = str(datetime.datetime.now().strftime("%y-%m-%d-%H-%M"))
-            print(start + " - " + infolder)# + "\n==============")
+            print(start + " - " + infolder)
             v and print("---   CREATING DATA to upload  ---")
             p = Document()
             p.load_legacy_data(infolder)
             uniquename = p.doc_title + "_" + start
             firstexportdir = sfolder.replace(config.src_path, legacy_output)
             if not os.path.isdir(firstexportdir):
-                print("Skipping... TKBS output missing under " + firstexportdir)
+                print("Skipping... TKBS output missing under " + firstexportdir + "\nRun stage-1 script  first, to convert legacy to transkribus format.")
                 continue
             v and print("---   UPLOADING data to server       ---")
             v and print("from " + firstexportdir)
@@ -425,13 +442,11 @@ def upload_pipeline(config):
                 print ("ERROR - document failed to upload " + p.title)
                 continue 
             
-            v and print("---   DOWNLOADING-1 doc for page ids       ---")
-            tempdowndir = prep_dir(os.path.join(workfolder, "tempdowndir"))
-            target_dir = os.path.join(tempdowndir, uniquename + "_" + str(collec) + "_" + str(docid))
-            docjson = download(collec, str(docid), target_dir, tkbs, p.tkbs_meta_filename)
+            v and print("---   GETTING page ids       ---")
+            docjson = get_doc(collec, docid, tkbs)
             pageids = p.load_tkbs_page_ids(docjson)
             
-            if config.line_detection.upper() != "YES":
+            if config.line_detection != None and config.line_detection.upper() == "SKIP":
                 v and print("Skipping from Line Detection and on...")
                 continue
             
@@ -447,9 +462,13 @@ def upload_pipeline(config):
                 continue
                 
             v and print("---   RUNNING OCR          ---")
-            ocr_status = run_ocr(collec, HTRmodelid, "", str(docid), pageids, tkbs)
+#            ocr_status = run_ocr_with_options(collec, HTRmodelid, "", str(446788), {}, tkbs)
+            dictionary = ""
+            if config.htr_lang_model != None and config.htr_lang_model:
+                dictionary = "trainDataLanguageModel"
+            ocr_status = run_ocr(collec, HTRmodelid, dictionary, str(docid), pageids, tkbs)
             if not ocr_status:
-                print ("ERROR - document failed ocr " + p.title)
+                print ("ERROR - document failed ocr " + p.title + " with status " + str(ocr_status))
                 continue 
             
             v and print("---   FINAL DOWNLOAD after OCR for TEI export        ---")
@@ -457,11 +476,16 @@ def upload_pipeline(config):
             ocrdocjson = download(collec, str(docid), otarget_dir, tkbs, p.tkbs_meta_filename)
             pageids = p.load_tkbs_page_ids(ocrdocjson)
             
-            if config.user_garbage_line_width > 0:
+            width = config.default_garbage_line_width
+            try:
+                width = int(config.user_garbage_line_width)
+            except:
+                width = config.default_garbage_line_width
+            if width > 0:
                 v and print("---   DELETING GARBAGE TEXT         ---")
                 for num, fname in p.pxml_names_by_pgnum().items():
                     fullname = os.path.join(otarget_dir, fname)
-                    delete_garbage_text(fullname, config.user_garbage_line_width)
+                    delete_garbage_text(fullname, width)
 
             
         except Exception as e:
