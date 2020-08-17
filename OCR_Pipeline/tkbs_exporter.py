@@ -23,7 +23,7 @@ class Config:
             self.src_path, self.export_tei, self.export_plaintext, self.export_csv = config_parameters
 
 def set_export(exformat):
-    result = input(exformat + " files will be created. Enter NO to skip (or press Enter to create the files): ")
+    result = input("Press Enter to create " + exformat + " files, or type NO to skip: ")
     try:
         if result != None and str(result).upper == "NO":
             return False
@@ -114,10 +114,16 @@ def prep_dir(out_dir):
         raise e
 
 def find_latest_folder(topfolder, start_pattern):
-    found_folders = glob.glob(os.path.join(topfolder, start_pattern) + '*')
-    return max(found_folders, key=os.path.getctime)
+    try:
+        found_folders = glob.glob(os.path.join(topfolder, start_pattern) + '*')
+        return max(found_folders, key=os.path.getctime)
+    except Exception as e: 
+        print("ERROR in find_latest_folder " + topfolder + start_pattern)
+        print (e)
+        print ("END ERROR \n\n")
+        raise e
 
-v = False
+v = True
 def export_pipeline(config):
     folders_to_be_exported = find_sub_folders_with_toc_file(config.src_path)
     tkbs_topfolder = os.path.join(config.src_path, "transkribus_output")
@@ -129,7 +135,6 @@ def export_pipeline(config):
         plaintextfolder = prep_dir(os.path.join(exportfolder, 'plaintext'))
     if config.export_tei:
         teifolder = prep_dir(os.path.join(exportfolder, 'tei'))
-
     for sfolder in folders_to_be_exported:
         try:
             if not os.path.isfile(os.path.join(sfolder, 'TOC.xml')):
@@ -141,12 +146,11 @@ def export_pipeline(config):
             v and print("---   LOADING Legacy data ---")
             p = Document()
             p.load_legacy_data(infolder)
-            
-            tkbsfolder = find_latest_folder(tkbs_topfolder, p.doc_title) 
-            p.load_tkbs_data(tkbsfolder)
+            tkbsfolder = find_latest_folder(tkbs_topfolder, p.doc_title)
+            p.load_tkbs_data(tkbsfolder) #FIX
             p.load_legacy_articles(p.legacy_metafile)
             p.match_legacy_articles()
-            
+
             if config.export_tei:
                 v and print("---   TEI export           ---")
                 p.export_tei(teifolder)
