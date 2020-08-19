@@ -112,7 +112,7 @@ def get_garbage_lines_width(width):
         return width
 
 def set_htr_language_model():
-    user_input = input("Enter 'YES' to activate the HTR integrated language model")
+    user_input = input("Enter 'YES' to activate the HTR integrated language model: ")
     try:
         if user_input.upper() == 'YES':
             return True
@@ -406,8 +406,6 @@ def delete_garbage_text(pgfile, garbage_line_width):
 v = True
 def upload_pipeline(config):
     folders_to_be_uploaded = find_sub_folders_with_toc_file(config.src_path)
-    workfolder = os.path.join(config.src_path, "tkbs_work")
-    prep_dir(workfolder)
     outfolder = os.path.join(config.src_path, "transkribus_output")
     prep_dir(outfolder)
     legacy_output = os.path.join(config.src_path, "legacy_output")
@@ -466,6 +464,7 @@ def upload_pipeline(config):
             dictionary = ""
             if config.htr_lang_model != None and config.htr_lang_model:
                 dictionary = "trainDataLanguageModel"
+                v and print("Using trainDataLanguageModel")
             ocr_status = run_ocr(collec, HTRmodelid, dictionary, str(docid), pageids, tkbs)
             if not ocr_status:
                 print ("ERROR - document failed ocr " + p.title + " with status " + str(ocr_status))
