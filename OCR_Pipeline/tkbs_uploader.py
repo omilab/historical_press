@@ -599,8 +599,8 @@ def upload_parallel():
     tkbs.auth_logout()
 
 
-#config = Config(["<user email>", "<user password>", r'<legacy top folder>', \
-#                 "<transkribus collection id>", None, "<transkribus htr model>", True, ""])
+config = Config(["<user email>", "<user password>", r'<legacy top folder>', \
+                 "<transkribus collection id>", None, "<transkribus htr model>", True, ""])
 tkbs_subfolder = "transkribus_output"
 tkbs = TranskribusClient(sServerUrl = "https://transkribus.eu/TrpServer")
 def main():
