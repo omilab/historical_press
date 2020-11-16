@@ -123,7 +123,7 @@ def find_latest_folder(topfolder, start_pattern):
         print ("END ERROR \n\n")
         raise e
 
-v = True
+v = False
 def export_pipeline(config):
     folders_to_be_exported = find_sub_folders_with_toc_file(config.src_path)
     tkbs_topfolder = os.path.join(config.src_path, "transkribus_output")
@@ -133,6 +133,7 @@ def export_pipeline(config):
         csvfolder_byarticle = prep_dir(os.path.join(exportfolder, 'csv_by_article'))
     if config.export_plaintext:
         plaintextfolder = prep_dir(os.path.join(exportfolder, 'plaintext'))
+        plaintextfolder_byarticle = prep_dir(os.path.join(exportfolder, 'plaintext_by_article'))
     if config.export_tei:
         teifolder = prep_dir(os.path.join(exportfolder, 'tei'))
     for sfolder in folders_to_be_exported:
@@ -158,6 +159,7 @@ def export_pipeline(config):
             if config.export_plaintext:
                 v and print("---   PLAINTEXT export     ---")
                 p.export_plaintext(plaintextfolder)
+                p.export_plaintext_articles(plaintextfolder_byarticle)
             
             if config.export_csv:
                 v and print("---   CSV export           ---")
