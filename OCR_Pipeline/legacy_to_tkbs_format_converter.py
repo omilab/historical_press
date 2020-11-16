@@ -1,6 +1,5 @@
 import os, shutil
 from pathlib import Path
-#import datetime
 from TkbsDocument import Document
 
 
@@ -49,9 +48,13 @@ def create_sub_folders_in_output_folder(folders_to_be_converted, inpath, outpath
 
 
 def convert_legacy_folder_to_tkbs_format(src_path, dst_path):
-    p = Document()
-    p.load_legacy_data(src_path)
-    p.export_tkbs_format(dst_path)
+    try:
+        p = Document()
+        p.load_legacy_data(src_path)
+        p.export_tkbs_format(dst_path)
+    except Exception as e:
+        print("ERROR in convert_legacy_folder_to_tkbs_format with src_path " + src_path)
+        print(e)
 
 
 def main():
@@ -66,8 +69,14 @@ def main():
 
     for f in range(len(
             folders_to_be_converted)):  # The routine that take source folder and convert files into destination file
-        convert_legacy_folder_to_tkbs_format(folders_to_be_converted[f], output_sub_folders[f])
-
+        try:
+            convert_legacy_folder_to_tkbs_format(folders_to_be_converted[f], output_sub_folders[f])
+        except Exception as e:
+            print("ERROR in main loop")
+            print (e)
+            print ("END ERROR \n\n")
+            continue
+            
     print("{} files converted successfully from legacy format to Transkribus format.\n"
           " You can find them now in {}'.".format(len(folders_to_be_converted), output_dir))
 
