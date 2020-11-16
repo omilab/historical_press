@@ -12,6 +12,7 @@ import os, sys, json, csv, mmap
 import xml.etree.ElementTree as ET
 import zipfile
 
+
 class Document:
 
     def __init__(self):
@@ -23,10 +24,13 @@ class Document:
         self.legacydir = None
         self.tkbs_exportdir = None
         self.page_count = 0
+        self.PagesImgResolutions = {} #key: page num, value: image resolution, from Pgxxx.xml
         self.PagesImgName = {} #key: page num, value: image filename, from TOC.xml
+        self.PagesResolutionFactor = {} #key: page num, value: 1 or max_res / page_res
         self.PagesXmlName = {} #key: page num, value: Pg00x.xml filename, from TOC.xml
         self.EntitiesIndex = {} #key: Entity name, from TOC.xml, value:   entity TOC_ENTRY_ID
         self.EntitiesPage = {} #key: Entity name, value: entity PAGE_NO , from TOC.xml
+        self.article_types = {} #key: Article Id, value: AR or AD, from TOC.xml
         self.input_pub_file_name = ""
         self.xmlcode = "UTF-8"
         self.cut_low_line_part = 0.33 #remove the lower part of the line box to help TKBS identify the baseline
@@ -36,12 +40,9 @@ class Document:
         self.inputdir_images = 'Img'
         self.outputdir_xmls = 'page'
         self.legacy_garbage_width = 13
-        self.resolution_filename_part = None
+        self.max_doc_resolution = None
         self.factor1 = None
         self.factor2 = None
-        self.resolutions = {150: {'factor1': 1.7238, 'factor2': 0.67}, \
-                            144: {'factor1': 1.7237, 'factor2': 0.494}, \
-                            160: {'factor1': 2, 'factor2': 0.494}}
         self.page_count = 0
         self.entity_counter = 0
         self.pxmlOutname = {}
@@ -125,13 +126,21 @@ class Document:
             for name in z.namelist():
                 z.extract(name, input_folder)
             fh.close()
+
+    def get_toc_article_types(self, tocfile):
+        ettree = ET.parse(tocfile)
+        xroot = ettree.getroot()
+        for a in xroot.findall("Logic_np/TOC_Entries/TOC_Entry"):
+            aid = a.attrib["TOC_ENTRY_ID"]
+            atype = a.attrib["PRIM_ID_REF"][0:2]
+            self.article_types[aid] = atype
     
     def load_legacy_data(self, inputdir):
         try:
             #---- READING TOC FILE ---------------------#
             self.legacydir = inputdir
             self.input_pub_file_name = os.path.join(self.legacydir, self.legacy_metafile)
-            self.pick_resolution(self.input_pub_file_name)
+            self.pick_max_resolution(self.input_pub_file_name)
             tree = etree.parse(self.input_pub_file_name)
             MetaElement = tree.xpath('//Xmd_toc')
             self.release_no = MetaElement[0].get("RELEASE_NO")
@@ -143,12 +152,26 @@ class Document:
             self.check_unzip(os.path.join(inputdir, self.docdir))
             for pgElement in tree.xpath('//Page'):
                 pgNum = pgElement.get("PAGE_NO")
-                pgImage = pgElement.get("ID") + self.resolution_filename_part + ".png"
-                pxmlOutname = pgElement.get("ID") + self.resolution_filename_part + ".pxml"
                 pgXml = pgElement.get("ID") + ".xml"
-                self.PagesImgName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, self.inputdir_images, pgImage)
                 self.PagesXmlName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, pgXml)
-                self.pxmlOutname[pgNum] = pxmlOutname
+                
+            #---- READING IMG RESOLUTIONS ---------------------#         
+            count = 1
+            while (count <= self.page_count):
+                self.parse_legacy_page_img_resolution(str(count))
+                count +=1
+                
+            for pgElement in tree.xpath('//Page'):
+                pgNum = pgElement.get("PAGE_NO")
+                pgId = pgElement.get("ID")
+                self.pxmlOutname[pgNum] = pgId + "_" + self.PagesImgResolutions[str(pgNum)] + ".pxml"
+                self.PagesImgName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, self.inputdir_images, pgId + "_" + self.PagesImgResolutions[str(pgNum)] + ".png")
+                if os.path.exists(self.PagesImgName[pgNum]):
+                    self.PagesResolutionFactor[pgNum] = 1
+                else:
+                    self.PagesResolutionFactor[pgNum] = float(self.max_doc_resolution) / float(self.PagesImgResolutions[str(pgNum)])
+                    self.PagesImgName[pgNum] = os.path.join(inputdir, self.docdir, pgNum, self.inputdir_images, pgId + "_" + str(self.max_doc_resolution) + ".png")
+                    self.pxmlOutname[pgNum] = pgId + "_" + str(self.max_doc_resolution) + ".pxml"
             for entityElement in tree.xpath('//Entity'):
                 entityId = entityElement.get("ID")
                 pgIndex = entityElement.get("PAGE_NO")
@@ -158,58 +181,32 @@ class Document:
             #---- READING PAGE FILES --------------------#
             count = 1
             while (count <= self.page_count):
-                pagedir = os.path.join(self.legacydir,self.docdir, str(count))
-                self.parse_legacy_page_data(str(count))
-                #follow a single page entities xml list
-                for root, dirs, files in os.walk(pagedir):
-                    for fname in files:
-                        if (fname.upper().endswith("XML") and not fname.upper().startswith("P")):
-                            self.get_legacy_entity_data(os.path.join(root, fname))
-                count +=1
+                self.parse_legacy_page_data(str(count), self.PagesResolutionFactor[str(count)])
+                count +=1  
             self.load_legacy_articles(self.input_pub_file_name)
+            self.get_toc_article_types(self.input_pub_file_name)
         except Exception as e:
             print("ERROR in load_legacy_data for inputdir " + inputdir)
             print (e)
             print ("END ERROR \n\n")
             exit
 
-    #calculate factor1 based on _144 and _160 resolutions
-    """
-    def calc_factor1(self, resolution):
-        return 0.494
-    """
-    #calculate factor2 based on _144 and _160 resolutions
-    """
-    def calc_factor2(self, resolution):
-        return (0.01726875*int(resolution) - 0.763)
-    """
-    #scan was done with 3 different resolutions, identify and change factors accordingly
-    
-    def pick_resolution(self, legacy_meta_file):
+    def pick_max_resolution(self, legacy_meta_file):
         try:
-            if self.resolution_filename_part == None:
-                tree = etree.parse(legacy_meta_file)
-                resolution = 0
-                for resElement in tree.xpath('//Resolution'):
-                    resText = resElement.text
-                    if int(resText) > resolution:
-                        resolution = int(resText)
-                self.resolution_filename_part = "_" + str(resolution)
-                if resolution in self.resolutions.keys():
-                    self.factor1 = self.resolutions[resolution]['factor1']
-                    self.factor2 = self.resolutions[resolution]['factor2']
-                else:
-                    self.factor1 = self.calc_factor1(resolution)
-                    self.factor2 = self.calc_factor2(resolution)
-                    print('WARNING in pick_resolution: undefined resolution - ' + str(resolution) + ', using factor1=' + str(self.factor1) + ', factor2=' + str(self.factor2) + '. Check coordinates precision and use set_factors to override calculated factors if needed.')
+            tree = etree.parse(legacy_meta_file)
+            resolution = 0
+            for resElement in tree.xpath('//Resolution'):
+                resText = resElement.text
+                if int(resText) > resolution:
+                    resolution = int(resText)
+            self.max_doc_resolution = resolution
         except Exception as e:
-            print("ERROR in pick_resolution " + legacy_meta_file)
+            print("ERROR in pick_max_resolution " + legacy_meta_file)
             print (e)
             print ("END ERROR \n\n")
             sys.exit(1)
-    
-    #def set_factors(self, resolution, factor1, factor2):
-        #self.resolutions[resolution] = {'factor1':factor1, 'factor2':factor2}
+
+
     #check if dir exists, creates it if not
     def prep_dir(self, out_dir):
         try:
@@ -221,84 +218,30 @@ class Document:
             print ("END ERROR \n\n")
             sys.exit(1)
 
-    #use a factor to get a number converted to Transkribus standard, return it as a truncated string
-    def calc_h_w_coordinate(self, incoord, coeff1):
-        try:
-            return str(int(round(int(incoord)*coeff1, 0)))
-        except Exception as e:
-            print("ERROR in calc_h_w_coordinate ")
-            print (e)
-            print ("END ERROR \n\n")
-            pass
-
-    #use factors to get a number converted to Transkribus standard, return it as a truncated string
-    def calc_one_coordinate(self, incoord, coeff1, coeff2):
-        #print("calc_one_coordinate! - WHY?")
-        try:
-            return str(int(round(int(incoord)*coeff1*coeff2, 0)))
-        except Exception as e:
-            print("ERROR in calc_one_coordinate ")
-            print (e)
-            print ("END ERROR \n\n")
-            pass
-
-    #truncate lower third of each line to improve TKBS work to create baseline
-    def modify_legacy_line_box(self, box, cut_part):
-        try:
-            xleft, ybottom, xright, ytop = box.split()
-            new_top = str(int(round(int(ytop) - cut_part*(int(ytop) - int(ybottom)))))
-            modified_box = xleft + " " + ybottom + " " + xright + " " + new_top
-            return modified_box
-        except Exception as e:
-            print("ERROR in modify_legacy_line_box " + box + " cut part: " + cut_part)
-            print (e)
-            print ("END ERROR \n\n")
-            pass
-
-    #combine 4 converted vars of a Box to Transkribux x,y Box style, return the combined string
-    def calc_coordinates(self, legacy_box, coef1, coef2):
-        try:
-            xleft, ybottom, xright, ytop = legacy_box.split()
-            left = self.calc_one_coordinate(xleft, coef1, coef2)
-            bottom = self.calc_one_coordinate(ybottom, coef1, coef2)
-            right = self.calc_one_coordinate(xright, coef1, coef2)
-            top = self.calc_one_coordinate(ytop, coef1, coef2)
-            coordinates = right + "," + top + " " + left + "," + top + " " + left + "," + bottom + " " + right + "," + bottom
-            return coordinates
-        except Exception as e:
-            print("ERROR in calc_coordinates " + left + " " + bottom + " " + right + " " + top)
-            print (e)
-            print ("END ERROR \n\n")
-            pass
-
-    #combine 4 converted vars of a Box to Transkribux x,y Box style, return the combined string
-    def calc_Pg_coordinates(self, legacy_box, coef1):
-        try:
-            xleft, ybottom, xright, ytop = legacy_box.split()
-            left = self.calc_h_w_coordinate(xleft, coef1)
-            bottom = self.calc_h_w_coordinate(ybottom, coef1)
-            right = self.calc_h_w_coordinate(xright, coef1)
-            top = self.calc_h_w_coordinate(ytop, coef1)
-            coordinates = right + "," + top + " " + left + "," + top + " " + left + "," + bottom + " " + right + "," + bottom
-            return coordinates
-        except Exception as e:
-            print("ERROR in calc_Pg_coordinates " + left + " " + bottom + " " + right + " " + top)
-            print (e)
-            print ("END ERROR \n\n")
-            pass
 
     #parse Pg00x.xml file
-    def parse_legacy_page_data(self, PgCount):
+    def parse_legacy_page_img_resolution(self, PgCount):
         try:
             tree = etree.parse(self.PagesXmlName[PgCount])
-            #print(PgCount, self.PagesXmlName[PgCount])
-            #print("This file directory only:")
+            MetaElement = tree.xpath('//XMD-PAGE/Meta')
+            self.PagesImgResolutions[PgCount] = MetaElement[0].get("IMAGES_RESOLUTION")
+        except Exception as e:
+            print("ERROR in parse_legacy_page_img_resolution for page " + PgCount)
+            print (e)
+            print ("END ERROR \n\n")
+            pass
+ 
+    #parse Pg00x.xml file
+    def parse_legacy_page_data(self, PgCount, resolution_factor):
+        try:
+            tree = etree.parse(self.PagesXmlName[PgCount])
             dir_path = (os.path.dirname(self.PagesXmlName[PgCount])) # dir of page file
             
             MetaElement = tree.xpath('//XMD-PAGE/Meta')
-            #print("parse_legacy_page_data: ", PgCount)
-            self.PagesImgHeight[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_HEIGHT"), self.factor1)
-            self.PagesImgWidth[PgCount] = self.calc_h_w_coordinate(MetaElement[0].get("PAGE_WIDTH"), self.factor1)
+
+            self.PagesImgHeight[PgCount] = MetaElement[0].get("PAGE_HEIGHT")
+            self.PagesImgWidth[PgCount] = MetaElement[0].get("PAGE_WIDTH")
+
             self.HeaderPrimitives
             for node in tree.xpath('//Primitive'): #all primitives needed
                 content_id = node.get("ID")
@@ -306,9 +249,7 @@ class Document:
                 
                 content_seq = node.get("SEQ_NO") 
                 content_id = node.get("ID")
-                content_box = node.get("BOX")
-                #print(content_id, content_box)
-                legacy_box = (self.get_correct_box_coordinates(content_id, dir_path))
+                legacy_box = (self.get_correct_box_coordinates(content_id, dir_path, resolution_factor))
                 left, bottom, right, top = legacy_box.split()
                 coordinates = right + "," + top + " " + left + "," + top + " " + left + "," + bottom + " " + right + "," + bottom
                 prim_type = node.get("ELEMENT_TYPE")
@@ -327,23 +268,34 @@ class Document:
                             original_index = int(self.PrimitivesIndexInPage[primitive])
                             self.PrimitivesIndexInPage[primitive] = str(original_index + 1) #assuming headline had the last index
         except Exception as e:
-            print("ERROR in parse_legacy_page_data " + PgCount)
+            print("ERROR in parse_legacy_page_data for page " + PgCount)
             print (e)
             print ("END ERROR \n\n")
             pass
     
     #return the correct coordinate from ar00x file for every ar00?0? id
-    def get_correct_box_coordinates(self, ar_id, path): 
+    def get_correct_box_coordinates(self, ar_id, path, resolution_factor): 
         file_name = ar_id[:-2]
         file_path = os.path.join(path, file_name)
         tree = etree.parse(file_path + ".xml")
         for node in tree.xpath('//Primitive'):
             if (node.get("ID")) == ar_id:
-                return (node.get("BOX"))
+                return self.fix_factor(node.get("BOX"), resolution_factor)
         for node in tree.xpath('//Img'):
             if (node.get("ID")) == ar_id:
-                return (node.get("BOX"))
-        
+                return self.fix_factor(node.get("BOX"), resolution_factor)
+
+    #In case image resolution is different that coordinates resolution
+    def fix_factor(self, box, factor):
+        try:
+            coordinates = box.split(" ")
+            for i in range(len(coordinates)):
+                coordinates[i] = str(int( int(coordinates[i]) * factor))
+            return " ".join(coordinates)
+        except:
+            print("fix_factor failed")
+            return box
+    
     def pxml_names_by_pgnum(self):
         return self.pxmlOutname
 
@@ -357,15 +309,12 @@ class Document:
     def write_transkribus_page_xml(self, pageCount):
         try:
             pgTarget = os.path.join(self.tkbs_exportdir, self.pxmlOutname[pageCount])
-
             attr_qname = etree.QName(self.tkbs_xsi, "schemaLocation")
             nsmap = {None: self.tkbs_xml_schema, \
                      "xsi": self.tkbs_xsi}
-
             root = etree.Element("PcGts", \
                      {attr_qname: self.tkbs_xml_schema + " " + self.tkbs_xsd}, \
                      nsmap=nsmap)
-
             doc = etree.ElementTree(root)
             Metadata = etree.SubElement(root, 'Metadata')
             Page = etree.SubElement(root, 'Page')
@@ -406,16 +355,6 @@ class Document:
                             '</' + RegionType + '>'
                             tNode = etree.fromstring(tRaw)
                             if (self.PrimitiveTypes[rPrimitive] != self.graphic_primitive_type):
-                                for tkey, tvalue in self.LineIndexInRegion.items():
-                                    if tkey.startswith(rPrimitive):
-                                        lindex = tvalue - 1
-                                        lRaw = '<TextLine id="line_' + tkey + '" custom="readingOrder {index:' + str(lindex) + ';}">' + \
-                                        '<Coords points="' + self.LineBoxing[tkey] + '"/>' + \
-                                        '</TextLine>'
-                                        lNode = etree.fromstring(lRaw)
-                                        lastNode = etree.fromstring('<TextEquiv><Unicode/></TextEquiv>')
-                                        lNode.append(lastNode)
-                                        tNode.append(lNode)
                                 lastNode = etree.fromstring('<TextEquiv><Unicode/></TextEquiv>')
                                 tNode.append(lastNode)
                             region_count = region_count + 1
@@ -423,7 +362,7 @@ class Document:
                         primitive_count = primitive_count + 1
             doc.write(pgTarget)
         except Exception as e:
-            print("ERROR in write_transkribus_page_xml " + pageCount)
+            print("ERROR in write_transkribus_page_xml for page number " + pageCount)
             print (e)
             print ("END ERROR \n\n")
             pass
@@ -540,7 +479,7 @@ class Document:
                         if eentry in self.legacy_articles.keys():
                             self.legacy_articles[eentry].entities[eid] = legacy_entity(eid)
                         else:
-                            print("*ERROR* TOC ENTRY ID " + eentry + " MISSING in " + metafile)
+                            print("Warning TOC ENTRY ID " + eentry + " MISSING in " + metafile)
 
 
     def export_csv_by_line(self, outdir):
@@ -604,7 +543,7 @@ class Document:
                 writer.writeheader()
                 for a in self.articles.keys():
                     articletext = ""
-                    aid = self.title + "_" + self.articles[a].id
+                    aid = self.title + "_" + self.article_types[a] + "_" + self.articles[a].id
                     header = self.articles[a].header
                     for r in self.articles[a].article_regions.keys():
                         for l in self.articles[a].article_regions[r].lines.keys():
@@ -616,6 +555,18 @@ class Document:
             print ("END ERROR \n\n")
             pass
 
+    def export_plaintext_articles(self, outdir):
+        try:
+            self.prep_dir(outdir)
+            for a in self.articles.keys():
+                with open(os.path.join(outdir, self.title + "_" + self.article_types[a] + "_" + str(a) + "_plaintext.txt"), mode = 'w', encoding = self.xmlcode) as o:
+                    for r in self.articles[a].article_regions.values():
+                        o.write(r.text)
+        except Exception as e:
+            print("ERROR in export_plaintext " + outdir)
+            print (e)
+            print ("END ERROR \n\n")
+            pass
 
     def export_tei(self, outdirectory):
         try:
