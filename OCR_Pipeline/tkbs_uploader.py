@@ -206,7 +206,7 @@ def run_ocr(collection, HTRmodelid, dictionaryName, mydocid, pids, mytkbs):
         jstring = jstring + ']}}'
         jobid = mytkbs.htrRnnDecode(collection, HTRmodelid, dictionaryName, mydocid, jstring, bDictTemp=False)
         seconds = 80 * len(pids)
-        return wait_for_jobstatus(jobid, seconds, mytkbs, count=5)
+        return wait_for_jobstatus(jobid, seconds, mytkbs, count=10)
     except Exception as e:
                 print("ERROR in run_ocr for docid " + str(mydocid))
                 print (e)
@@ -227,7 +227,7 @@ def run_ocr_with_options(collection, HTRmodelid, dictionaryName, mydocid, pids, 
         jstring = jstring + ']}}'
         jobid = mytkbs.htrRnnDecode(collection, HTRmodelid, dictionaryName, mydocid, jstring, bDictTemp=False)
         seconds = 80 * len(pids)
-        return wait_for_jobstatus(jobid, seconds, mytkbs, count=5)
+        return wait_for_jobstatus(jobid, seconds, mytkbs, count=10)
     except Exception as e:
                 print("ERROR in run_ocr for docid " + str(mydocid))
                 print (e)
@@ -365,8 +365,8 @@ def line_detect(collection, mydocid, pageids, mytkbs):
         tree = ElementTree.fromstring(response)
         status = tree.find('trpJobStatus')
         jobId = status.find('jobId').text
-        seconds = total * 60
-        return wait_for_jobstatus(jobId, seconds, mytkbs, count=5)
+        seconds = total * 5
+        return wait_for_jobstatus(jobId, seconds, mytkbs, count=12)
     except Exception as e:
                 print("ERROR in line_detect ")
                 print (e)
@@ -403,7 +403,7 @@ def delete_garbage_text(pgfile, garbage_line_width):
     else:
         return False
 
-v = True
+v = False
 def upload_pipeline(config):
     folders_to_be_uploaded = find_sub_folders_with_toc_file(config.src_path)
     outfolder = os.path.join(config.src_path, "transkribus_output")
@@ -498,9 +498,113 @@ def upload_pipeline(config):
     tkbs.auth_logout()
 
 
+def upload_a_folder(sfolder):
+    user = config.username
+    outfolder = os.path.join(config.src_path, tkbs_subfolder)
+    prep_dir(outfolder)
+    legacy_output = os.path.join(config.src_path, "legacy_output")
+    collec = config.collection_id
+    HTRmodelid = config.htr_model_id
+    infolder = sfolder
+    OkayMessage = "Done OKAY " + infolder
+    ErrorMessage = "Done with ERRORs " + infolder
+
+    try:
+        if not os.path.isfile(os.path.join(sfolder, 'TOC.xml')):
+            return(ErrorMessage)
+
+        start = str(datetime.datetime.now().strftime("%y-%m-%d-%H-%M"))
+        print(start + " - " + infolder)
+        v and print("---   CREATING DATA to upload  ---")
+        p = Document()
+        p.load_legacy_data(infolder)
+        uniquename = p.doc_title + "_" + start
+        firstexportdir = sfolder.replace(config.src_path, legacy_output)
+        if not os.path.isdir(firstexportdir):
+            print(p.doc_title + " Skipping... TKBS output missing under " + firstexportdir + "\nRun stage-1 script  first, to convert legacy to transkribus format.")
+            return(OkayMessage)
+        v and print(p.doc_title + "---   UPLOADING data to server       --- from " + firstexportdir)
+        docid = upload(collec, firstexportdir, p.img_names_by_pgnum(), p.pxml_names_by_pgnum(), p.title, user, "pipeline test", tkbs)
+        if docid <= 0:
+            print (p.doc_title + "ERROR - document failed to upload " + p.title)
+            return(ErrorMessage) 
+        
+        v and print(p.doc_title + "---   GETTING page ids       ---")
+        docjson = get_doc(collec, docid, tkbs)
+        pageids = p.load_tkbs_page_ids(docjson)
+        
+        if config.line_detection != None and config.line_detection.upper() == "SKIP":
+            v and print(p.doc_title + "Skipping from Line Detection and on...")
+            return(OkayMessage)
+        
+        v and print(p.doc_title + "---   LINE DETECTION          ---")
+        detection_status = line_detect(collec, docid, pageids, tkbs)
+        if not detection_status:
+            print (p.doc_title + "ERROR - document failed line detection " + p.title)
+            return(ErrorMessage) 
+        
+        
+        if len(HTRmodelid) < 2:
+            v and print(p.doc_title + "Skipping from Htr and on...")
+            return(OkayMessage)
+            
+        v and print(p.doc_title + "---   RUNNING OCR          ---")
+    #            ocr_status = run_ocr_with_options(collec, HTRmodelid, "", str(446788), {}, tkbs)
+        dictionary = ""
+        if config.htr_lang_model != None and config.htr_lang_model:
+            dictionary = "trainDataLanguageModel"
+            v and print(p.doc_title + "Using trainDataLanguageModel")
+        ocr_status = run_ocr(collec, HTRmodelid, dictionary, str(docid), pageids, tkbs)
+        if not ocr_status:
+            print (p.doc_title + "ERROR - document failed ocr " + p.title + " with status " + str(ocr_status))
+            return(ErrorMessage)  
+        
+        v and print(p.doc_title + "---   FINAL DOWNLOAD after OCR for TEI export        ---")
+        otarget_dir = os.path.join(outfolder, uniquename + "_" + str(collec) + "_" + str(docid))
+        ocrdocjson = download(collec, str(docid), otarget_dir, tkbs, p.tkbs_meta_filename)
+        pageids = p.load_tkbs_page_ids(ocrdocjson)
+        
+        width = config.default_garbage_line_width
+        try:
+            width = int(config.user_garbage_line_width)
+        except:
+            width = config.default_garbage_line_width
+        if width > 0:
+            v and print(p.doc_title + "---   DELETING GARBAGE TEXT         ---")
+            for num, fname in p.pxml_names_by_pgnum().items():
+                fullname = os.path.join(otarget_dir, fname)
+                delete_garbage_text(fullname, width)
+                
+        return(OkayMessage)
+    except Exception as e:
+        print(p.doc_title + "ERROR in upload_a_folder ")
+        print (e)
+        print (p.doc_title + "END ERROR \n\n")
+        return(ErrorMessage)
+    
+    
+def upload_parallel():
+    disable_warnings(InsecureRequestWarning)
+    user = config.username
+    key = config.password
+    tkbs.auth_login(user, key, True)
+    folders_to_be_uploaded = find_sub_folders_with_toc_file(config.src_path)    
+    with ThreadPoolExecutor(max_workers = 3) as executor:
+        results = executor.map(upload_a_folder, folders_to_be_uploaded)
+    for result in results:
+        print(result)
+    
+
+    print("PARALLEL UPLOAD DONE. Output is under " + os.path.join(config.src_path, tkbs_subfolder))
+    tkbs.auth_logout()
+
+
+#config = Config(["<user email>", "<user password>", r'<legacy top folder>', \
+#                 "<transkribus collection id>", None, "<transkribus htr model>", True, ""])
+tkbs_subfolder = "transkribus_output"
+tkbs = TranskribusClient(sServerUrl = "https://transkribus.eu/TrpServer")
 def main():
-    config = Config()
-    upload_pipeline(config)
+    upload_parallel()
 
 
 if __name__ == '__main__':
